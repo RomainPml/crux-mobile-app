@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  deviceKeyHash String   @unique @map("device_key_hash")
+  pseudo        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  dailyResults          DailyResult[]
+  monthlyScores         MonthlyScore[]
+  memberships           Membership[]
+  ownedLeagues          League[]              @relation("LeagueOwner")
+  userBadges            UserBadge[]
+  events                Event[]
+  leagueStandingHistory LeagueStandingHistory[]
+  puzzleServes          PuzzleServe[]
+
+  @@map("user")
+}
+
+model Puzzle {
+  id         String   @id @default(cuid())
+  day        DateTime @unique @db.Date
+  difficulty Int      @default(1)
+
+  dailyResults DailyResult[]
+  puzzleServes PuzzleServe[]
+
+  @@map("puzzle")
+}
+
+model PuzzleServe {
+  id       String   @id @default(cuid())
+  userId   String   @map("user_id")
+  puzzleId String   @map("puzzle_id")
+  servedAt DateTime @map("served_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  puzzle Puzzle @relation(fields: [puzzleId], references: [id])
+
+  @@unique([userId, puzzleId])
+  @@map("puzzle_serve")
+}
+
+model DailyResult {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  puzzleId         String   @map("puzzle_id")
+  score            Int
+  timeMs           Int      @map("temps_ms")
+  cleanDeductions  Int      @map("deductions_propres")
+  servedAt         DateTime @map("served_at")
+  submittedAt      DateTime @default(now()) @map("submitted_at")
+  suspect          Boolean  @default(false)
+
+  user   User   @relation(fields: [userId], references: [id])
+  puzzle Puzzle @relation(fields: [puzzleId], references: [id])
+
+  @@unique([userId, puzzleId])
+  @@map("daily_result")
+}
+
+model MonthlyScore {
+  id              String @id @default(cuid())
+  userId          String @map("user_id")
+  month           String // YYYY-MM
+  totalScore      Int    @default(0) @map("total_score")
+  puzzlesPlayed   Int    @default(0) @map("puzzles_played")
+  cumulativeTimeMs Int   @default(0) @map("cumulative_time_ms")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
+  @@map("monthly_score")
+}
+
+model League {
+  id        String   @id @default(cuid())
+  name      String   @map("nom")
+  code      String   @unique @db.VarChar(6)
+  type      LeagueType @default(PRIVATE)
+  ownerId   String?  @map("owner_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner       User?        @relation("LeagueOwner", fields: [ownerId], references: [id])
+  memberships Membership[]
+  standingHistory LeagueStandingHistory[]
+
+  @@map("league")
+}
+
+enum LeagueType {
+  GLOBAL  @map("global")
+  PRIVATE @map("private")
+
+  @@map("league_type")
+}
+
+model Membership {
+  id       String   @id @default(cuid())
+  leagueId String   @map("league_id")
+  userId   String   @map("user_id")
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  league League @relation(fields: [leagueId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([leagueId, userId])
+  @@map("membership")
+}
+
+enum MemberRole {
+  ADMIN  @map("admin")
+  MEMBER @map("member")
+
+  @@map("member_role")
+}
+
+model LeagueStandingHistory {
+  id           String @id @default(cuid())
+  leagueId     String @map("league_id")
+  userId       String @map("user_id")
+  month        String // YYYY-MM
+  finalRank    Int    @map("final_rank")
+  finalScore   Int    @map("final_score")
+  membersCount Int    @map("members_count")
+
+  league League @relation(fields: [leagueId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([leagueId, userId, month])
+  @@map("league_standing_history")
+}
+
+model Badge {
+  id          String @id @default(cuid())
+  code        String @unique
+  name        String @map("nom")
+  description String
+  criteria    String @map("critere")
+
+  userBadges UserBadge[]
+
+  @@map("badge")
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+  context   Json?
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId, context])
+  @@map("user_badge")
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  type      String
+  userId    String?  @map("user_id")
+  payload   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("event")
+}

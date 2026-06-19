@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crux - Rejoindre une ligue</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; text-align: center; color: #1a1a1a; }
+    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 32px; }
+    .invite-box { background: #f7f7f7; border-radius: 16px; padding: 24px; margin-bottom: 32px; }
+    .invite-label { font-size: 0.9rem; color: #888; margin-bottom: 8px; }
+    .league-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; }
+    .code { font-size: 1.8rem; font-weight: bold; letter-spacing: 0.25em; padding: 12px 24px; background: #fff; border-radius: 10px; display: inline-block; border: 2px dashed #ddd; }
+    .store-buttons { margin-top: 24px; }
+    .btn { display: block; padding: 16px; margin: 10px 0; border-radius: 12px; text-decoration: none; color: white; font-weight: 600; font-size: 1.05rem; }
+    .ios { background: #007AFF; }
+    .android { background: #34A853; }
+    .open-app { background: #1a1a1a; margin-bottom: 8px; }
+    .footer { margin-top: 40px; font-size: 0.8rem; color: #aaa; }
+  </style>
+</head>
+<body>
+  <h1>Crux</h1>
+  <p class="subtitle">Le puzzle de deduction quotidien</p>
+
+  <div class="invite-box">
+    <p class="invite-label">Vous etes invite a rejoindre</p>
+    <p class="league-name" id="league-name">une ligue</p>
+    <div class="code" id="league-code">------</div>
+  </div>
+
+  <div class="store-buttons">
+    <a class="btn open-app" id="open-app-link" href="#">Ouvrir dans l'app</a>
+    <a class="btn ios" id="ios-link" href="#">Telecharger sur l'App Store</a>
+    <a class="btn android" id="android-link" href="#">Telecharger sur Google Play</a>
+  </div>
+
+  <p class="footer">Le code sera automatiquement utilise a l'ouverture de l'app.</p>
+
+  <script>
+    (function() {
+      var pathParts = window.location.pathname.split("/");
+      var code = pathParts[pathParts.length - 1];
+
+      if (!code || code.length !== 6) return;
+
+      document.getElementById("league-code").textContent = code.toUpperCase();
+
+      // Store code for deferred deep link (survives install)
+      localStorage.setItem("crux_invite_code", code.toUpperCase());
+
+      // Try to detect league name from query param (set by share)
+      var params = new URLSearchParams(window.location.search);
+      var name = params.get("name");
+      if (name) {
+        document.getElementById("league-name").textContent = decodeURIComponent(name);
+      }
+
+      // Universal link / deep link to app
+      var deepLink = "crux://join/" + code.toUpperCase();
+      document.getElementById("open-app-link").href = deepLink;
+
+      // Platform detection for store links
+      var ua = navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(ua)) {
+        document.getElementById("android-link").style.display = "none";
+      } else if (/android/.test(ua)) {
+        document.getElementById("ios-link").style.display = "none";
+      }
+    })();
+  </script>
+</body>
+</html>
