@@ -130,6 +130,20 @@ describe("GET /leagues/:id/standings", () => {
   });
 });
 
+describe("GET /leagues/:id/standings?period=all_time", () => {
+  it("returns all-time standings aggregating all months", async () => {
+    const res = await supertest(app.server)
+      .get(`/leagues/${league.id}/standings?period=all_time`)
+      .set("Authorization", `Bearer ${users[0].token}`)
+      .expect(200);
+
+    expect(res.body.period).toBe("all_time");
+    expect(res.body.month).toBeUndefined();
+    expect(res.body.standings).toHaveLength(4);
+    expect(res.body.standings[0].rank).toBe(1);
+  });
+});
+
 describe("GET /leagues/global/standings", () => {
   it("returns global standings with percentile", async () => {
     const res = await supertest(app.server)

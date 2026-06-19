@@ -25,7 +25,6 @@ export async function computeStandings(
   leagueId: string,
   month: string,
 ): Promise<StandingEntry[]> {
-  // Get all members of the league with their monthly scores
   const members = await prisma.membership.findMany({
     where: { leagueId },
     include: {
@@ -61,6 +60,74 @@ export async function computeStandings(
   }));
 }
 
+export async function computeAllTimeStandings(
+  leagueId: string,
+): Promise<StandingEntry[]> {
+  const members = await prisma.membership.findMany({
+    where: { leagueId },
+    include: {
+      user: {
+        include: {
+          // All monthly scores ever
+          monthlyScores: true,
+          // Past frozen standings for this league
+          leagueStandingHistory: { where: { leagueId } },
+        },
+      },
+    },
+  });
+
+  const month = currentMonth();
+
+  const rows: RankedRow[] = members.map((m) => {
+    // Sum all historical final scores + current month score
+    let totalScore = 0;
+    let puzzlesPlayed = 0;
+    let cumulativeTimeMs = 0;
+
+    // Frozen months from history
+    for (const h of m.user.leagueStandingHistory) {
+      totalScore += h.finalScore;
+    }
+
+    // Current month from monthly_score (not yet frozen)
+    const currentMs = m.user.monthlyScores.find((ms) => ms.month === month);
+    if (currentMs) {
+      totalScore += currentMs.totalScore;
+      puzzlesPlayed += currentMs.puzzlesPlayed;
+      cumulativeTimeMs += currentMs.cumulativeTimeMs;
+    }
+
+    // Sum puzzles/time from all monthly_scores for tiebreak
+    for (const ms of m.user.monthlyScores) {
+      if (ms.month !== month) {
+        puzzlesPlayed += ms.puzzlesPlayed;
+        cumulativeTimeMs += ms.cumulativeTimeMs;
+      }
+    }
+
+    return {
+      userId: m.userId,
+      pseudo: m.user.pseudo,
+      totalScore,
+      puzzlesPlayed,
+      cumulativeTimeMs,
+      joinedAt: m.joinedAt,
+    };
+  });
+
+  rows.sort(compareEntries);
+
+  return rows.map((r, i) => ({
+    rank: i + 1,
+    userId: r.userId,
+    pseudo: r.pseudo,
+    totalScore: r.totalScore,
+    puzzlesPlayed: r.puzzlesPlayed,
+    cumulativeTimeMs: r.cumulativeTimeMs,
+  }));
+}
+
 export async function standingsRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string }; Querystring: { period?: string } }>(
     "/leagues/:id/standings",
@@ -70,13 +137,16 @@ export async function standingsRoutes(app: FastifyInstance) {
       const period = (request.query.period as string) || "current";
       const month = currentMonth();
 
-      const standings = await computeStandings(id, month);
+      const standings = period === "all_time"
+        ? await computeAllTimeStandings(id)
+        : await computeStandings(id, month);
+
       const userEntry = standings.find((s) => s.userId === request.user.sub);
 
       return {
         leagueId: id,
         period,
-        month,
+        month: period === "current" ? month : undefined,
         standings,
         userEntry: userEntry ?? undefined,
       };
