@@ -14,19 +14,20 @@
   },
   "dependencies": {
     "@crux/shared": "workspace:*",
+    "@fastify/jwt": "^9.0.0",
+    "@fastify/rate-limit": "^11.0.0",
     "@prisma/client": "^6.0.0",
     "fastify": "^5.0.0",
-    "@fastify/jwt": "^9.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.0",
     "prisma": "^6.0.0",
+    "supertest": "^7.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.1.0",
-    "supertest": "^7.0.0",
-    "@types/supertest": "^6.0.0",
-    "@types/node": "^22.0.0"
+    "vitest": "^2.1.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

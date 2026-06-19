@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import fastifyJwt from "@fastify/jwt";
+import rateLimit from "@fastify/rate-limit";
 import { ZodError } from "zod";
 import { authRoutes } from "./auth.js";
 import { puzzleRoutes } from "./puzzle.js";
@@ -15,6 +16,12 @@ export function buildApp() {
 
   app.register(fastifyJwt, {
     secret: process.env.JWT_SECRET || "dev-secret-change-me",
+  });
+
+  app.register(rateLimit, {
+    max: 100,
+    timeWindow: "1 minute",
+    allowList: ["127.0.0.1", "::1"],
   });
 
   app.setErrorHandler((error, _request, reply) => {
