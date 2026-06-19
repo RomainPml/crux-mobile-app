@@ -61,7 +61,7 @@ describe("POST /auth/anon", () => {
     await supertest(app.server)
       .post("/auth/anon")
       .send({ deviceKey: "short" })
-      .expect(500); // Zod validation error
+      .expect(400); // Zod validation error
   });
 });
 
