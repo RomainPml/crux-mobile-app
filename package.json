@@ -2,8 +2,8 @@
   "name": "crux",
   "private": true,
   "scripts": {
-    "api": "pnpm --filter @crux/api dev",
-    "mobile": "pnpm --filter @crux/mobile start",
+    "api": "tsx watch --env-file=apps/api/.env apps/api/src/index.ts",
+    "mobile": "NODE_OPTIONS='--no-experimental-require-module' expo start apps/mobile",
     "shared:build": "pnpm --filter @crux/shared build",
     "db:migrate": "pnpm --filter @crux/api prisma:migrate",
     "db:seed": "pnpm --filter @crux/api prisma:seed",

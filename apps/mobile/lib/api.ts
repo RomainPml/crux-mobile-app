@@ -13,8 +13,13 @@ import type {
   MyLeaguesResponse,
 } from "@crux/shared";
 
+import { Platform } from "react-native";
+
+// Android emulator uses 10.0.2.2 to reach the host machine
+const DEFAULT_API_URL = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
+
 // @ts-ignore — Expo injects EXPO_PUBLIC_ vars at build time
-const API_URL: string = (globalThis as any).process?.env?.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL: string = (globalThis as any).process?.env?.EXPO_PUBLIC_API_URL || DEFAULT_API_URL;
 
 const DEVICE_KEY_STORE = "crux_device_key";
 const TOKEN_STORE = "crux_token";
@@ -50,11 +55,18 @@ async function getToken(): Promise<string> {
 
   // No token yet — authenticate
   const deviceKey = await getOrCreateDeviceKey();
-  const res = await fetch(`${API_URL}/auth/anon`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ deviceKey }),
-  });
+  console.log("[API] Auth request to", `${API_URL}/auth/anon`);
+  try {
+    var res = await fetch(`${API_URL}/auth/anon`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceKey }),
+    });
+  } catch (e) {
+    console.error("[API] Auth fetch failed:", e);
+    throw e;
+  }
+  console.log("[API] Auth response:", res.status);
   if (!res.ok) throw new Error("Auth failed");
 
   const data: AnonAuthResponse = await res.json();
