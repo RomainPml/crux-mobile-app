@@ -9,5 +9,8 @@
     "db:seed": "pnpm --filter @crux/api prisma:seed",
     "test": "vitest --run --root apps/api",
     "test:shared": "vitest --run --root packages/shared"
+  },
+  "devDependencies": {
+    "jscodeshift": "^17.3.0"
   }
 }
