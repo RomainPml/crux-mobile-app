@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "./db.js";
 import { computeStandings } from "./standings.js";
+import { authenticateAdmin } from "./admin.js";
 
 export async function rolloverMonth(month: string) {
   const leagues = await prisma.league.findMany({
@@ -154,7 +155,7 @@ async function awardBadge(
 }
 
 export async function rolloverRoutes(app: FastifyInstance) {
-  app.post("/admin/month-rollover", async (request, reply) => {
+  app.post("/admin/month-rollover", { preHandler: [authenticateAdmin] }, async (request, reply) => {
     const body = request.body as { month?: string };
     if (!body.month || !/^\d{4}-\d{2}$/.test(body.month)) {
       return reply.code(400).send({ error: "month is required (YYYY-MM)" });

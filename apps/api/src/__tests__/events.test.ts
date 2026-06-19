@@ -59,6 +59,7 @@ describe("GET /admin/metrics", () => {
   it("returns aggregated metrics", async () => {
     const res = await supertest(app.server)
       .get("/admin/metrics")
+      .set("x-admin-key", "dev-admin-key")
       .expect(200);
 
     expect(res.body).toHaveProperty("shares");

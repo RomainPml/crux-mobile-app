@@ -97,6 +97,7 @@ describe("POST /admin/month-rollover", () => {
   it("freezes standings into league_standing_history", async () => {
     const res = await supertest(app.server)
       .post("/admin/month-rollover")
+      .set("x-admin-key", "dev-admin-key")
       .send({ month: MONTH })
       .expect(200);
 
@@ -118,6 +119,7 @@ describe("POST /admin/month-rollover", () => {
   it("is idempotent — replaying produces the same state", async () => {
     await supertest(app.server)
       .post("/admin/month-rollover")
+      .set("x-admin-key", "dev-admin-key")
       .send({ month: MONTH })
       .expect(200);
 
@@ -181,6 +183,7 @@ describe("POST /admin/month-rollover", () => {
   it("does not duplicate badges on replay", async () => {
     await supertest(app.server)
       .post("/admin/month-rollover")
+      .set("x-admin-key", "dev-admin-key")
       .send({ month: MONTH })
       .expect(200);
 
@@ -208,6 +211,7 @@ describe("POST /admin/month-rollover", () => {
   it("rejects invalid month format", async () => {
     await supertest(app.server)
       .post("/admin/month-rollover")
+      .set("x-admin-key", "dev-admin-key")
       .send({ month: "bad" })
       .expect(400);
   });

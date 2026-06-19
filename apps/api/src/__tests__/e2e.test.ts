@@ -154,6 +154,7 @@ describe("E2E: full user journey", () => {
     // Run rollover for current month
     await supertest(app.server)
       .post("/admin/month-rollover")
+      .set("x-admin-key", "dev-admin-key")
       .send({ month })
       .expect(200);
 
@@ -166,6 +167,7 @@ describe("E2E: full user journey", () => {
     // Replay — idempotent
     await supertest(app.server)
       .post("/admin/month-rollover")
+      .set("x-admin-key", "dev-admin-key")
       .send({ month })
       .expect(200);
 
@@ -206,6 +208,7 @@ describe("E2E: full user journey", () => {
   it("11. Metrics endpoint returns data", async () => {
     const res = await supertest(app.server)
       .get("/admin/metrics")
+      .set("x-admin-key", "dev-admin-key")
       .expect(200);
 
     expect(res.body.totalUsers).toBeGreaterThan(0);

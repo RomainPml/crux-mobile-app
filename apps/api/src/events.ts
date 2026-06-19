@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "./db.js";
 import { authenticate } from "./auth.js";
+import { authenticateAdmin } from "./admin.js";
 
 export type EventType =
   | "result_submitted"
@@ -35,7 +36,7 @@ export async function eventRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  app.get("/admin/metrics", async () => {
+  app.get("/admin/metrics", { preHandler: [authenticateAdmin] }, async () => {
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
