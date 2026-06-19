@@ -30,8 +30,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
-      "expo-linking"
+      "expo-secure-store"
     ]
   }
 }
