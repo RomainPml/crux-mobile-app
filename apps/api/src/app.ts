@@ -27,7 +27,8 @@ export function buildApp() {
         })),
       });
     }
-    reply.code(error.statusCode ?? 500).send({ error: error.message });
+    const err = error as Error & { statusCode?: number };
+    reply.code(err.statusCode ?? 500).send({ error: err.message });
   });
 
   app.get("/health", async () => {

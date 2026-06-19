@@ -148,7 +148,7 @@ async function awardBadge(
   if (!badgeId) return;
 
   await prisma.userBadge
-    .create({ data: { userId, badgeId, context } })
+    .create({ data: { userId, badgeId, context: context as any } })
     .catch((e: any) => {
       if (e.code !== "P2002") throw e;
     });
