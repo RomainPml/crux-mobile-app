@@ -5,8 +5,17 @@ import {
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useMonthStatus, usePuzzleToday, usePuzzleByDate, useSubmitGuess } from "../../lib/hooks";
 import type { LetterResult, GuessResponse, PuzzleTodayResponse } from "@crux/shared";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import AnimatedCell from "../../components/AnimatedCell";
 import { COLORS, SPACING, FONT, RADIUS } from "../../lib/theme";
+
+const SESSION_KEY = (date: string) => `crux_session_${date}`;
+
+interface SessionData {
+  guesses: { word: string; result: LetterResult[] }[];
+  gameOver: boolean;
+  finalResult: GuessResponse | null;
+}
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -72,6 +81,7 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
   const [finalResult, setFinalResult] = useState<GuessResponse | null>(null);
   const [revealedRows, setRevealedRows] = useState<Set<number>>(new Set());
   const [winRow, setWinRow] = useState(-1);
+  const [restored, setRestored] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const bannerAnim = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
@@ -79,6 +89,29 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
   const data = puzzle.data as PuzzleTodayResponse | undefined;
   const wl = data?.config?.wordLength ?? 5;
   const maxAttempts = data?.config?.maxAttempts ?? 6;
+
+  // Restore session from AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem(SESSION_KEY(date)).then((raw) => {
+      if (!raw) { setRestored(true); return; }
+      try {
+        const session: SessionData = JSON.parse(raw);
+        if (session.guesses.length > 0) {
+          setGuesses(session.guesses);
+          setRevealedRows(new Set(session.guesses.map((_, i) => i)));
+          if (session.gameOver && session.finalResult) {
+            setGameOver(true);
+            setFinalResult(session.finalResult);
+            bannerAnim.setValue(1);
+            if (session.finalResult.solved) {
+              setWinRow(session.guesses.length - 1);
+            }
+          }
+        }
+      } catch {}
+      setRestored(true);
+    }).catch(() => setRestored(true));
+  }, [date]);
 
   const shake = () => {
     Animated.sequence([
@@ -99,11 +132,21 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
       {
         onSuccess: (res) => {
           const newIdx = guesses.length;
-          setGuesses((prev) => [...prev, { word: guess, result: res.result }]);
+          const newGuesses = [...guesses, { word: guess, result: res.result }];
+          setGuesses(newGuesses);
           setCurrentInput("");
           // Keep keyboard open for next guess
           setTimeout(() => inputRef.current?.focus(), 100);
           setTimeout(() => setRevealedRows((prev) => new Set(prev).add(newIdx)), 50);
+
+          const isOver = res.solved || res.attemptsUsed >= res.maxAttempts;
+          // Persist session
+          const session: SessionData = {
+            guesses: newGuesses,
+            gameOver: isOver,
+            finalResult: isOver ? res : null,
+          };
+          AsyncStorage.setItem(SESSION_KEY(date), JSON.stringify(session)).catch(() => {});
 
           if (res.solved) {
             setTimeout(() => setWinRow(newIdx), wl * 200 + 400);
@@ -135,7 +178,7 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
     inputRef.current?.focus();
   }, []);
 
-  if (puzzle.isLoading) return <View style={[gs.center, { height }]}><ActivityIndicator color={COLORS.accent} /></View>;
+  if (puzzle.isLoading || !restored) return <View style={[gs.center, { height }]}><ActivityIndicator color={COLORS.accent} /></View>;
 
   if (puzzle.error || !data) {
     const msg = (puzzle.error as any)?.message ?? "";
