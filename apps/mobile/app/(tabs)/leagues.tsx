@@ -1,18 +1,12 @@
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  Share,
+  View, Text, StyleSheet, FlatList, Pressable, TextInput,
+  ActivityIndicator, Alert, Share,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useMyLeagues, useCreateLeague, useJoinLeague } from "../../lib/hooks";
 import { api } from "../../lib/api";
+import { COLORS, SPACING, FONT, RADIUS } from "../../lib/theme";
 
 export default function LeaguesScreen() {
   const leagues = useMyLeagues();
@@ -43,11 +37,7 @@ export default function LeaguesScreen() {
     joinLeague.mutate(
       { code: code.toUpperCase() },
       {
-        onSuccess: (data) => {
-          setShowJoin(false);
-          setCode("");
-          Alert.alert("Rejoint !", data.name);
-        },
+        onSuccess: (data) => { setShowJoin(false); setCode(""); Alert.alert("Rejoint !", data.name); },
         onError: () => Alert.alert("Erreur", "Code invalide"),
       },
     );
@@ -65,62 +55,62 @@ export default function LeaguesScreen() {
   };
 
   if (leagues.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <View style={s.center}><ActivityIndicator color={COLORS.accent} /></View>;
   }
 
   if (leagues.error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Erreur de chargement</Text>
-        <Pressable style={styles.btn} onPress={() => leagues.refetch()}>
-          <Text style={styles.btnText}>Reessayer</Text>
+      <View style={s.center}>
+        <Text style={s.errorText}>Erreur de chargement</Text>
+        <Pressable style={s.retryBtn} onPress={() => leagues.refetch()}>
+          <Text style={s.retryBtnText}>Reessayer</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.actions}>
-        <Pressable style={styles.btn} onPress={() => setShowCreate(!showCreate)}>
-          <Text style={styles.btnText}>+ Creer</Text>
+    <View style={s.container}>
+      <Text style={s.title}>Mes Ligues</Text>
+
+      <View style={s.actions}>
+        <Pressable style={s.btnPrimary} onPress={() => setShowCreate(!showCreate)}>
+          <Text style={s.btnPrimaryText}>+ Creer</Text>
         </Pressable>
-        <Pressable style={[styles.btn, styles.btnSecondary]} onPress={() => setShowJoin(!showJoin)}>
-          <Text style={styles.btnTextSecondary}>Rejoindre</Text>
+        <Pressable style={s.btnOutline} onPress={() => setShowJoin(!showJoin)}>
+          <Text style={s.btnOutlineText}>Rejoindre</Text>
         </Pressable>
       </View>
 
       {showCreate && (
-        <View style={styles.form}>
+        <View style={s.form}>
           <TextInput
-            style={styles.input}
+            style={s.input}
             placeholder="Nom de la ligue"
+            placeholderTextColor={COLORS.textMuted}
             value={name}
             onChangeText={setName}
             maxLength={50}
           />
-          <Pressable style={styles.btnSmall} onPress={handleCreate}>
-            <Text style={styles.btnText}>Creer</Text>
+          <Pressable style={s.formBtn} onPress={handleCreate}>
+            <Text style={s.btnPrimaryText}>Creer</Text>
           </Pressable>
         </View>
       )}
 
       {showJoin && (
-        <View style={styles.form}>
+        <View style={s.form}>
           <TextInput
-            style={styles.input}
-            placeholder="Code (6 caracteres)"
+            style={s.input}
+            placeholder="Code (6 car.)"
+            placeholderTextColor={COLORS.textMuted}
             value={code}
             onChangeText={setCode}
             maxLength={6}
             autoCapitalize="characters"
           />
-          <Pressable style={styles.btnSmall} onPress={handleJoin}>
-            <Text style={styles.btnText}>Rejoindre</Text>
+          <Pressable style={s.formBtn} onPress={handleJoin}>
+            <Text style={s.btnPrimaryText}>OK</Text>
           </Pressable>
         </View>
       )}
@@ -128,27 +118,33 @@ export default function LeaguesScreen() {
       <FlatList
         data={leagues.data?.leagues ?? []}
         keyExtractor={(item) => item.leagueId}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>Aucune ligue. Creez-en une ou rejoignez par code !</Text>}
+        contentContainerStyle={s.list}
+        ListEmptyComponent={
+          <Text style={s.empty}>Aucune ligue. Creez-en une ou rejoignez par code !</Text>
+        }
         renderItem={({ item }) => (
           <Pressable
-            style={styles.card}
-            onPress={() =>
-              router.push({ pathname: "/standings/[id]", params: { id: item.leagueId } })
-            }
+            style={s.card}
+            onPress={() => router.push({ pathname: "/standings/[id]", params: { id: item.leagueId } })}
           >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-              {item.type === "private" && (
-                <Pressable onPress={() => handleShare(item.code, item.name)}>
-                  <Text style={styles.shareBtn}>Partager</Text>
-                </Pressable>
+            <View style={s.cardHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.cardTitle}>{item.name}</Text>
+                <Text style={s.cardMeta}>
+                  {item.memberCount} membre{item.memberCount > 1 ? "s" : ""}
+                </Text>
+              </View>
+              {item.currentRank && (
+                <View style={s.rankBadge}>
+                  <Text style={s.rankText}>#{item.currentRank}</Text>
+                </View>
               )}
             </View>
-            <Text style={styles.cardMeta}>
-              {item.memberCount} membre{item.memberCount > 1 ? "s" : ""}
-              {item.currentRank ? ` — Rang #${item.currentRank}` : ""}
-            </Text>
+            {item.type === "private" && (
+              <Pressable style={s.shareBtn} onPress={() => handleShare(item.code, item.name)}>
+                <Text style={s.shareText}>Partager</Text>
+              </Pressable>
+            )}
           </Pressable>
         )}
       />
@@ -156,45 +152,45 @@ export default function LeaguesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
-  error: { fontSize: 16, color: "red", marginBottom: 8 },
-  empty: { textAlign: "center", color: "#aaa", fontSize: 14, marginTop: 24 },
-  actions: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  btn: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.bg, padding: SPACING.md },
+  center: { flex: 1, backgroundColor: COLORS.bg, justifyContent: "center", alignItems: "center", gap: SPACING.md },
+  title: { fontSize: FONT.xxl, fontWeight: "800", color: COLORS.textPrimary, marginBottom: SPACING.md },
+  actions: { flexDirection: "row", gap: SPACING.sm, marginBottom: SPACING.md },
+  btnPrimary: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: 10, paddingHorizontal: 20, borderRadius: RADIUS.xl,
   },
-  btnSecondary: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#007AFF" },
-  btnText: { color: "#fff", fontWeight: "600" },
-  btnTextSecondary: { color: "#007AFF", fontWeight: "600" },
-  btnSmall: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  btnPrimaryText: { color: "#fff", fontWeight: "600", fontSize: FONT.sm },
+  btnOutline: {
+    borderWidth: 1, borderColor: COLORS.accent,
+    paddingVertical: 10, paddingHorizontal: 20, borderRadius: RADIUS.xl,
   },
-  form: { flexDirection: "row", gap: 8, marginBottom: 16, alignItems: "center" },
+  btnOutlineText: { color: COLORS.accentLight, fontWeight: "600", fontSize: FONT.sm },
+  form: { flexDirection: "row", gap: SPACING.sm, marginBottom: SPACING.md, alignItems: "center" },
   input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
+    flex: 1, backgroundColor: COLORS.bgInput, color: COLORS.textPrimary,
+    borderRadius: RADIUS.md, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONT.md,
+    borderWidth: 1, borderColor: COLORS.border,
   },
-  list: { gap: 8 },
+  formBtn: { backgroundColor: COLORS.accent, paddingVertical: 10, paddingHorizontal: 16, borderRadius: RADIUS.md },
+  list: { gap: SPACING.sm, paddingBottom: SPACING.xxl },
   card: {
-    backgroundColor: "#f9f9f9",
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: COLORS.bgCard, borderRadius: RADIUS.lg, padding: SPACING.md,
+    borderWidth: 1, borderColor: COLORS.border,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  cardTitle: { fontSize: 17, fontWeight: "600" },
-  cardMeta: { fontSize: 13, color: "#888", marginTop: 4 },
-  shareBtn: { color: "#007AFF", fontSize: 14, fontWeight: "500" },
+  cardHeader: { flexDirection: "row", alignItems: "center" },
+  cardTitle: { fontSize: FONT.lg, fontWeight: "600", color: COLORS.textPrimary },
+  cardMeta: { fontSize: FONT.sm, color: COLORS.textSecondary, marginTop: 2 },
+  rankBadge: {
+    backgroundColor: COLORS.accent, width: 40, height: 40, borderRadius: 20,
+    justifyContent: "center", alignItems: "center",
+  },
+  rankText: { color: "#fff", fontSize: FONT.md, fontWeight: "700" },
+  shareBtn: { marginTop: SPACING.sm },
+  shareText: { color: COLORS.accentLight, fontSize: FONT.sm, fontWeight: "500" },
+  empty: { color: COLORS.textMuted, fontSize: FONT.md, textAlign: "center", marginTop: SPACING.xxl },
+  errorText: { fontSize: FONT.md, color: COLORS.textSecondary },
+  retryBtn: { backgroundColor: COLORS.accent, paddingVertical: 10, paddingHorizontal: 24, borderRadius: RADIUS.md },
+  retryBtnText: { color: "#fff", fontWeight: "600" },
 });

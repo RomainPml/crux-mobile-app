@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-nati
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useJoinLeague } from "../../lib/hooks";
 import { useEffect, useState } from "react";
+import { COLORS, SPACING, FONT, RADIUS } from "../../lib/theme";
 
 export default function JoinScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
@@ -9,36 +10,29 @@ export default function JoinScreen() {
   const router = useRouter();
   const [joined, setJoined] = useState(false);
 
-  const handleJoin = () => {
+  useEffect(() => {
     if (!code) return;
     joinLeague.mutate(
       { code: code.toUpperCase() },
-      {
-        onSuccess: () => setJoined(true),
-      },
+      { onSuccess: () => setJoined(true) },
     );
-  };
-
-  // Auto-join on mount
-  useEffect(() => {
-    handleJoin();
   }, [code]);
 
   if (joinLeague.isPending) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.text}>Rejoindre la ligue...</Text>
+      <View style={s.container}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={s.text}>Rejoindre la ligue...</Text>
       </View>
     );
   }
 
   if (joinLeague.error) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.error}>Code invalide ou ligue introuvable</Text>
-        <Pressable style={styles.btn} onPress={() => router.replace("/(tabs)/leagues")}>
-          <Text style={styles.btnText}>Retour aux ligues</Text>
+      <View style={s.container}>
+        <Text style={s.errorText}>Code invalide ou ligue introuvable</Text>
+        <Pressable style={s.btn} onPress={() => router.replace("/(tabs)/leagues")}>
+          <Text style={s.btnText}>Retour</Text>
         </Pressable>
       </View>
     );
@@ -46,19 +40,15 @@ export default function JoinScreen() {
 
   if (joined && joinLeague.data) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Rejoint !</Text>
-        <Text style={styles.text}>{joinLeague.data.name}</Text>
+      <View style={s.container}>
+        <Text style={s.successEmoji}>{"\u2705"}</Text>
+        <Text style={s.title}>{joinLeague.data.name}</Text>
+        <Text style={s.text}>Rejoint !</Text>
         <Pressable
-          style={styles.btn}
-          onPress={() =>
-            router.replace({
-              pathname: "/standings/[id]",
-              params: { id: joinLeague.data!.leagueId },
-            })
-          }
+          style={s.btn}
+          onPress={() => router.replace({ pathname: "/standings/[id]", params: { id: joinLeague.data!.leagueId } })}
         >
-          <Text style={styles.btnText}>Voir le classement</Text>
+          <Text style={s.btnText}>Voir le classement</Text>
         </Pressable>
       </View>
     );
@@ -67,17 +57,12 @@ export default function JoinScreen() {
   return null;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 8 },
-  text: { fontSize: 16, color: "#666", marginTop: 12 },
-  error: { fontSize: 16, color: "red", marginBottom: 16, textAlign: "center" },
-  btn: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  btnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.bg, justifyContent: "center", alignItems: "center", padding: SPACING.lg, gap: SPACING.md },
+  title: { fontSize: FONT.xl, fontWeight: "700", color: COLORS.textPrimary },
+  text: { fontSize: FONT.md, color: COLORS.textSecondary },
+  successEmoji: { fontSize: 48 },
+  errorText: { fontSize: FONT.md, color: COLORS.lose, textAlign: "center" },
+  btn: { backgroundColor: COLORS.accent, paddingVertical: 14, paddingHorizontal: 32, borderRadius: RADIUS.lg, marginTop: SPACING.md },
+  btnText: { color: "#fff", fontSize: FONT.md, fontWeight: "600" },
 });
