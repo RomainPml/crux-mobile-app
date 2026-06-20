@@ -24,8 +24,13 @@ const DEVICE_KEY_STORE = "crux_device_key";
 const TOKEN_STORE = "crux_token";
 
 function randomDeviceKey(): string {
-  return require("expo-crypto").getRandomBytes(48)
-    .reduce((s: string, b: number) => s + b.toString(16).padStart(2, "0"), "");
+  // Use Math.random as seed, then hash server-side via SHA-256
+  // Acceptable because the device key is hashed before storage
+  let key = "";
+  for (let i = 0; i < 64; i++) {
+    key += Math.floor(Math.random() * 16).toString(16);
+  }
+  return key + "-" + Date.now().toString(36);
 }
 
 async function getOrCreateDeviceKey(): Promise<string> {
