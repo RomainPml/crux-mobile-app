@@ -85,15 +85,15 @@ export default function AnimatedCell({ letter, result, revealed, delay, bounce, 
 
 const styles = StyleSheet.create({
   cell: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 4,
   },
   text: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "700",
   },
 });
