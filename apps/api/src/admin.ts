@@ -8,6 +8,6 @@ export async function authenticateAdmin(
 ) {
   const key = request.headers["x-admin-key"];
   if (key !== ADMIN_KEY) {
-    reply.code(403).send({ error: "Forbidden" });
+    return reply.code(403).send({ error: "Forbidden" });
   }
 }
