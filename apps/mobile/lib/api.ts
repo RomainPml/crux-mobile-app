@@ -52,18 +52,11 @@ async function getToken(): Promise<string> {
 
   // No token yet — authenticate
   const deviceKey = await getOrCreateDeviceKey();
-  console.log("[API] Auth request to", `${API_URL}/auth/anon`);
-  try {
-    var res = await fetch(`${API_URL}/auth/anon`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deviceKey }),
-    });
-  } catch (e) {
-    console.error("[API] Auth fetch failed:", e);
-    throw e;
-  }
-  console.log("[API] Auth response:", res.status);
+  const res = await fetch(`${API_URL}/auth/anon`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ deviceKey }),
+  });
   if (!res.ok) throw new Error("Auth failed");
 
   const data: AnonAuthResponse = await res.json();
@@ -72,7 +65,12 @@ async function getToken(): Promise<string> {
   return data.token;
 }
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+async function clearToken(): Promise<void> {
+  cachedToken = null;
+  await SecureStore.deleteItemAsync(TOKEN_STORE);
+}
+
+async function apiFetch<T>(path: string, options?: RequestInit, isRetry = false): Promise<T> {
   const token = await getToken();
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -82,6 +80,13 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
       ...options?.headers,
     },
   });
+
+  // On 401, clear stale token and retry auth once
+  if (res.status === 401 && !isRetry) {
+    await clearToken();
+    return apiFetch<T>(path, options, true);
+  }
+
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`API ${res.status}: ${body}`);
