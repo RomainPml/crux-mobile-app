@@ -60,7 +60,7 @@ const ds = StyleSheet.create({
 });
 
 // ── Puzzle game ──
-function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; isCatchUp: boolean; isCompleted: boolean; height: number }) {
+function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: boolean; height: number }) {
   const todayQuery = usePuzzleToday();
   const catchUpQuery = usePuzzleByDate(date, isCatchUp);
   const puzzle = isCatchUp ? catchUpQuery : todayQuery;
@@ -131,14 +131,9 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
     );
   }, [currentInput, wl, data, gameOver, submitGuess, guesses.length]);
 
-  if (isCompleted) {
-    return (
-      <View style={[gs.center, { height }]}>
-        <Text style={{ fontSize: 32 }}>{"\u2705"}</Text>
-        <Text style={gs.doneText}>Termine !</Text>
-      </View>
-    );
-  }
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus();
+  }, []);
 
   if (puzzle.isLoading) return <View style={[gs.center, { height }]}><ActivityIndicator color={COLORS.accent} /></View>;
 
@@ -156,10 +151,6 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
       </View>
     );
   }
-
-  const focusInput = useCallback(() => {
-    inputRef.current?.focus();
-  }, []);
 
   return (
     <Pressable style={{ height }} onPress={focusInput}>
@@ -306,7 +297,14 @@ export default function PuzzleScreen() {
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => (
           <View style={{ width: SW, height: contentHeight }}>
-            <PuzzleGame key={item.date} date={item.date} isCatchUp={item.status === "missed"} isCompleted={item.status === "completed"} height={contentHeight} />
+            {item.status === "completed" ? (
+              <View style={[gs.center, { height: contentHeight }]}>
+                <Text style={{ fontSize: 32 }}>{"\u2705"}</Text>
+                <Text style={gs.doneText}>Termine !</Text>
+              </View>
+            ) : (
+              <PuzzleGame key={item.date} date={item.date} isCatchUp={item.status === "missed"} height={contentHeight} />
+            )}
           </View>
         )}
       />
