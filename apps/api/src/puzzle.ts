@@ -37,11 +37,11 @@ export async function puzzleRoutes(app: FastifyInstance) {
 
     const servedAt = new Date();
 
-    // Store servedAt so POST /results can compute server-side time
+    // Store servedAt only on first serve (no-op on re-fetch to prevent timer gaming)
     await prisma.puzzleServe.upsert({
       where: { userId_puzzleId: { userId: request.user.sub, puzzleId: puzzle.id } },
       create: { userId: request.user.sub, puzzleId: puzzle.id, servedAt },
-      update: { servedAt },
+      update: {},
     });
 
     return {

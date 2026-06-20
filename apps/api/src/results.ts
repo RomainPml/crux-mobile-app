@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { SubmitResultRequestSchema, currentMonth } from "@crux/shared";
+import { SubmitResultRequestSchema, currentMonth, todayDate } from "@crux/shared";
 import { prisma } from "./db.js";
 import { authenticate } from "./auth.js";
 import { trackEvent } from "./events.js";
@@ -26,6 +26,12 @@ export async function resultRoutes(app: FastifyInstance) {
     });
     if (!puzzle) {
       return reply.code(404).send({ error: "Puzzle not found" });
+    }
+
+    // Verify this is today's puzzle
+    const puzzleDay = puzzle.day.toISOString().slice(0, 10);
+    if (puzzleDay !== todayDate()) {
+      return reply.code(400).send({ error: "Can only submit results for today's puzzle" });
     }
 
     // Check idempotency: already submitted?

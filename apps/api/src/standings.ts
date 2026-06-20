@@ -132,9 +132,18 @@ export async function standingsRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string }; Querystring: { period?: string } }>(
     "/leagues/:id/standings",
     { preHandler: [authenticate] },
-    async (request) => {
+    async (request, reply) => {
       const { id } = request.params;
       const period = (request.query.period as string) || "current";
+
+      // Verify user is a member of this league
+      const membership = await prisma.membership.findUnique({
+        where: { leagueId_userId: { leagueId: id, userId: request.user.sub } },
+      });
+      if (!membership) {
+        return reply.code(403).send({ error: "Not a member of this league" });
+      }
+
       const month = currentMonth();
 
       const standings = period === "all_time"
