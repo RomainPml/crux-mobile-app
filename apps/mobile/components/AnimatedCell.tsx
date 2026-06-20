@@ -16,12 +16,13 @@ interface Props {
   delay: number;
   bounce?: boolean;
   bounceDelay?: number;
+  instant?: boolean;
 }
 
-export default function AnimatedCell({ letter, result, revealed, delay, bounce, bounceDelay = 0 }: Props) {
-  const flipAnim = useRef(new Animated.Value(0)).current;
+export default function AnimatedCell({ letter, result, revealed, delay, bounce, bounceDelay = 0, instant }: Props) {
+  const flipAnim = useRef(new Animated.Value(instant && revealed ? 1 : 0)).current;
   const bounceAnim = useRef(new Animated.Value(0)).current;
-  const hasRevealed = useRef(false);
+  const hasRevealed = useRef(instant && revealed);
 
   useEffect(() => {
     if (revealed && !hasRevealed.current && result) {

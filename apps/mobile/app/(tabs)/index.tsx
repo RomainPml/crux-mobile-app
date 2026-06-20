@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput,
-  Alert, FlatList, Dimensions, Animated, ScrollView,
+  Alert, FlatList, Dimensions, Animated, ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useMonthStatus, usePuzzleToday, usePuzzleByDate, useSubmitGuess } from "../../lib/hooks";
@@ -69,7 +69,7 @@ const ds = StyleSheet.create({
 });
 
 // ── Puzzle game ──
-function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: boolean; height: number }) {
+function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
   const todayQuery = usePuzzleToday();
   const catchUpQuery = usePuzzleByDate(date, isCatchUp);
   const puzzle = isCatchUp ? catchUpQuery : todayQuery;
@@ -82,6 +82,7 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
   const [revealedRows, setRevealedRows] = useState<Set<number>>(new Set());
   const [winRow, setWinRow] = useState(-1);
   const [restored, setRestored] = useState(false);
+  const restoredCount = useRef(0);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const bannerAnim = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
@@ -97,6 +98,7 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
       try {
         const session: SessionData = JSON.parse(raw);
         if (session.guesses.length > 0) {
+          restoredCount.current = session.guesses.length;
           setGuesses(session.guesses);
           setRevealedRows(new Set(session.guesses.map((_, i) => i)));
           if (session.gameOver && session.finalResult) {
@@ -178,15 +180,15 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
     inputRef.current?.focus();
   }, []);
 
-  if (puzzle.isLoading || !restored) return <View style={[gs.center, { height }]}><ActivityIndicator color={COLORS.accent} /></View>;
+  if (puzzle.isLoading || !restored) return <View style={[gs.center, { flex: 1 }]}><ActivityIndicator color={COLORS.accent} /></View>;
 
   if (puzzle.error || !data) {
     const msg = (puzzle.error as any)?.message ?? "";
     if (msg.includes("deja complete")) {
-      return <View style={[gs.center, { height }]}><Text style={gs.doneText}>Deja joue !</Text></View>;
+      return <View style={[gs.center, { flex: 1 }]}><Text style={gs.doneText}>Deja joue !</Text></View>;
     }
     return (
-      <View style={[gs.center, { height }]}>
+      <View style={[gs.center, { flex: 1 }]}>
         <Text style={gs.errorText}>{msg || "Erreur de chargement"}</Text>
         <Pressable style={gs.retryBtn} onPress={() => puzzle.refetch()}>
           <Text style={gs.retryBtnText}>Reessayer</Text>
@@ -196,94 +198,100 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
   }
 
   return (
-    <Pressable style={{ height }} onPress={focusInput}>
-      {/* Catch-up indicator */}
-      {isCatchUp && !gameOver && (
-        <View style={gs.catchUpBanner}>
-          <Text style={gs.catchUpText}>
-            Rattrapage {parseInt(date.slice(8), 10)}/{parseInt(date.slice(5, 7), 10)} — x0.5
-          </Text>
-        </View>
-      )}
-
-      {/* Result */}
-      {gameOver && finalResult && (
-        <Animated.View style={[
-          gs.banner, finalResult.solved ? gs.bannerWin : gs.bannerLose,
-          { opacity: bannerAnim, transform: [{ translateY: bannerAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] },
-        ]}>
-          <Text style={gs.bannerText}>
-            {finalResult.solved ? `Bravo ! ${finalResult.score} pts` : "Perdu..."}
-          </Text>
-          {finalResult.timeMs != null && (
-            <Text style={gs.bannerSub}>
-              {Math.round(finalResult.timeMs / 1000)}s — {finalResult.attemptsUsed}/{maxAttempts} essais
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <Pressable style={{ flex: 1 }} onPress={focusInput}>
+        {/* Catch-up indicator */}
+        {isCatchUp && !gameOver && (
+          <View style={gs.catchUpBanner}>
+            <Text style={gs.catchUpText}>
+              Rattrapage {parseInt(date.slice(8), 10)}/{parseInt(date.slice(5, 7), 10)} — x0.5
             </Text>
-          )}
-        </Animated.View>
-      )}
+          </View>
+        )}
 
-      {/* Grid */}
-      <View style={gs.grid}>
-        {Array.from({ length: maxAttempts }).map((_, row) => {
-          const guess = guesses[row];
-          const isCurrentRow = row === guesses.length && !gameOver;
-          const letters = guess?.word ?? (isCurrentRow ? currentInput.toUpperCase() : "");
-          const isRevealed = revealedRows.has(row);
-          const isWin = row === winRow;
+        {/* Result */}
+        {gameOver && finalResult && (
+          <Animated.View style={[
+            gs.banner, finalResult.solved ? gs.bannerWin : gs.bannerLose,
+            { opacity: bannerAnim, transform: [{ translateY: bannerAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] },
+          ]}>
+            <Text style={gs.bannerText}>
+              {finalResult.solved ? `Bravo ! ${finalResult.score} pts` : "Perdu..."}
+            </Text>
+            {finalResult.timeMs != null && (
+              <Text style={gs.bannerSub}>
+                {Math.round(finalResult.timeMs / 1000)}s — {finalResult.attemptsUsed}/{maxAttempts} essais
+              </Text>
+            )}
+          </Animated.View>
+        )}
 
-          return (
-            <Animated.View
-              key={row}
-              style={[gs.gridRow, isCurrentRow && { transform: [{ translateX: shakeAnim }] }]}
-            >
-              {Array.from({ length: wl }).map((_, col) => (
-                <AnimatedCell
-                  key={col}
-                  letter={letters[col] ?? ""}
-                  result={guess?.result[col]}
-                  revealed={isRevealed}
-                  delay={col * 200}
-                  bounce={isWin}
-                  bounceDelay={col * 100}
-                />
-              ))}
-            </Animated.View>
-          );
-        })}
-      </View>
+        {/* Grid */}
+        <View style={gs.grid}>
+          {Array.from({ length: maxAttempts }).map((_, row) => {
+            const guess = guesses[row];
+            const isCurrentRow = row === guesses.length && !gameOver;
+            const letters = guess?.word ?? (isCurrentRow ? currentInput.toUpperCase() : "");
+            const isRevealed = revealedRows.has(row);
+            const isWin = row === winRow;
 
-      {/* Input bar */}
-      {!gameOver && (
-        <View style={gs.inputBar}>
-          <TextInput
-            ref={inputRef}
-            style={gs.textInput}
-            value={currentInput}
-            onChangeText={(t) => setCurrentInput(t.replace(/[^a-zA-Z]/g, "").slice(0, wl))}
-            onSubmitEditing={handleSubmit}
-            maxLength={wl}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            autoComplete="off"
-            spellCheck={false}
-            autoFocus
-            returnKeyType="send"
-            blurOnSubmit={false}
-            editable={!submitGuess.isPending}
-            placeholder={`${wl} lettres`}
-            placeholderTextColor={COLORS.textMuted}
-          />
-          <Pressable
-            style={[gs.sendBtn, currentInput.length < wl && gs.sendBtnDisabled]}
-            onPress={handleSubmit}
-            disabled={currentInput.length < wl || submitGuess.isPending}
-          >
-            <Text style={gs.sendBtnText}>{submitGuess.isPending ? "..." : "\u2713"}</Text>
-          </Pressable>
+            return (
+              <Animated.View
+                key={row}
+                style={[gs.gridRow, isCurrentRow && { transform: [{ translateX: shakeAnim }] }]}
+              >
+                {Array.from({ length: wl }).map((_, col) => (
+                  <AnimatedCell
+                    key={col}
+                    letter={letters[col] ?? ""}
+                    result={guess?.result[col]}
+                    revealed={isRevealed}
+                    delay={col * 200}
+                    bounce={isWin}
+                    bounceDelay={col * 100}
+                    instant={row < restoredCount.current}
+                  />
+                ))}
+              </Animated.View>
+            );
+          })}
         </View>
-      )}
-    </Pressable>
+
+        {/* Input bar */}
+        {!gameOver && (
+          <View style={gs.inputBar}>
+            <TextInput
+              ref={inputRef}
+              style={gs.textInput}
+              value={currentInput}
+              onChangeText={(t) => setCurrentInput(t.replace(/[^a-zA-Z]/g, "").slice(0, wl))}
+              onSubmitEditing={handleSubmit}
+              maxLength={wl}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+              returnKeyType="send"
+              blurOnSubmit={false}
+              editable={!submitGuess.isPending}
+              placeholder={`${wl} lettres`}
+              placeholderTextColor={COLORS.textMuted}
+            />
+            <Pressable
+              style={[gs.sendBtn, currentInput.length < wl && gs.sendBtnDisabled]}
+              onPress={handleSubmit}
+              disabled={currentInput.length < wl || submitGuess.isPending}
+            >
+              <Text style={gs.sendBtnText}>{submitGuess.isPending ? "..." : "\u2713"}</Text>
+            </Pressable>
+          </View>
+        )}
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -341,12 +349,12 @@ export default function PuzzleScreen() {
         renderItem={({ item }) => (
           <View style={{ width: SW, height: contentHeight }}>
             {item.status === "completed" ? (
-              <View style={[gs.center, { height: contentHeight }]}>
+              <View style={[gs.center, { flex: 1 }]}>
                 <Text style={{ fontSize: 32 }}>{"\u2705"}</Text>
                 <Text style={gs.doneText}>Termine !</Text>
               </View>
             ) : (
-              <PuzzleGame key={item.date} date={item.date} isCatchUp={item.status === "missed"} height={contentHeight} />
+              <PuzzleGame key={item.date} date={item.date} isCatchUp={item.status === "missed"} />
             )}
           </View>
         )}
