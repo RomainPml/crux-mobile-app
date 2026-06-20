@@ -185,8 +185,8 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
         </Animated.View>
       )}
 
-      {/* Grid */}
-      <View style={gs.grid}>
+      {/* Grid — tap to open keyboard */}
+      <Pressable style={gs.grid} onPress={() => inputRef.current?.focus()}>
         {Array.from({ length: maxAttempts }).map((_, row) => {
           const guess = guesses[row];
           const isCurrentRow = row === guesses.length && !gameOver;
@@ -213,7 +213,7 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
             </Animated.View>
           );
         })}
-      </View>
+      </Pressable>
 
       {/* Input bar */}
       {!gameOver && (
