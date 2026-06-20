@@ -25,12 +25,9 @@ const DEVICE_KEY_STORE = "crux_device_key";
 const TOKEN_STORE = "crux_token";
 
 function randomDeviceKey(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let key = "";
-  for (let i = 0; i < 64; i++) {
-    key += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return key;
+  const bytes = new Uint8Array(48);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 async function getOrCreateDeviceKey(): Promise<string> {
