@@ -119,6 +119,8 @@ export default function LeaguesScreen() {
         data={leagues.data?.leagues ?? []}
         keyExtractor={(item) => item.leagueId}
         contentContainerStyle={s.list}
+        onRefresh={() => leagues.refetch()}
+        refreshing={leagues.isFetching}
         ListEmptyComponent={
           <Text style={s.empty}>Aucune ligue. Creez-en une ou rejoignez par code !</Text>
         }
