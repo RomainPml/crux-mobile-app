@@ -11,11 +11,16 @@ import { rolloverRoutes } from "./rollover.js";
 import { profileRoutes } from "./profile.js";
 import { eventRoutes } from "./events.js";
 
-export function buildApp() {
+export function buildApp(opts?: { skipEnvCheck?: boolean }) {
+  if (!opts?.skipEnvCheck) {
+    if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET env var is required");
+    if (!process.env.ADMIN_API_KEY) throw new Error("ADMIN_API_KEY env var is required");
+  }
+
   const app = Fastify({ logger: true });
 
   app.register(fastifyJwt, {
-    secret: process.env.JWT_SECRET || "dev-secret-change-me",
+    secret: process.env.JWT_SECRET || "test-secret",
   });
 
   app.register(rateLimit, {

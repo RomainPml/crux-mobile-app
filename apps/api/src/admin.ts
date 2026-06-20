@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 
-const ADMIN_KEY = process.env.ADMIN_API_KEY || "dev-admin-key";
+const ADMIN_KEY = process.env.ADMIN_API_KEY || "test-admin-key";
 
 export async function authenticateAdmin(
   request: FastifyRequest,
