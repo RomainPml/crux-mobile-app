@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Pressable } from "react-native";
 import { useState } from "react";
 import { usePuzzleToday, useSubmitResult } from "../../lib/hooks";
+import PuzzleBoard from "../../components/puzzle/PuzzleBoard";
 
 export default function PuzzleScreen() {
   const puzzle = usePuzzleToday();
@@ -9,100 +10,107 @@ export default function PuzzleScreen() {
 
   if (puzzle.isLoading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#1a1a1a" />
       </View>
     );
   }
 
-  if (puzzle.error) {
+  if (puzzle.error || !puzzle.data) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.error}>Erreur de chargement</Text>
-        <Pressable style={styles.btn} onPress={() => puzzle.refetch()}>
-          <Text style={styles.btnText}>Reessayer</Text>
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Erreur de chargement</Text>
+        <Pressable style={styles.retryBtn} onPress={() => puzzle.refetch()}>
+          <Text style={styles.retryBtnText}>Reessayer</Text>
         </Pressable>
       </View>
     );
   }
 
-  const data = puzzle.data!;
+  const data = puzzle.data;
 
-  const handleSubmit = () => {
+  if (!data.grid) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Puzzle non disponible</Text>
+      </View>
+    );
+  }
+
+  const handleSubmit = (solution: Record<string, string>[], cleanDeductions: number) => {
     submit.mutate(
-      {
-        puzzleId: data.puzzleId,
-        cleanDeductions: 3, // stub: will be computed from real puzzle interaction
-        solution: [], // stub: will be populated from grid state
-      },
+      { puzzleId: data.puzzleId, cleanDeductions, solution },
       { onSuccess: () => setSubmitted(true) },
     );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Puzzle du jour</Text>
-      <Text style={styles.meta}>
-        {data.day} — Difficulte {data.difficulty}/5
-      </Text>
-
-      <View style={styles.puzzleArea}>
-        <Text style={styles.stub}>[ Puzzle stub ]</Text>
-        <Text style={styles.hint}>Le vrai puzzle sera branche ici</Text>
-      </View>
-
+      {/* Result overlay */}
       {submitted && submit.data ? (
-        <View style={styles.result}>
-          <Text style={styles.resultTitle}>Resultat</Text>
-          <Text style={styles.resultText}>Score : {submit.data.score}</Text>
-          <Text style={styles.resultText}>
-            Temps : {(submit.data.timeMs / 1000).toFixed(1)}s
+        <View style={styles.resultOverlay}>
+          <Text style={styles.resultEmoji}>
+            {submit.data.correct ? "\u2705" : "\u274c"}
+          </Text>
+          <Text style={styles.resultTitle}>
+            {submit.data.correct ? "Correct !" : "Incorrect"}
+          </Text>
+          <Text style={styles.resultScore}>
+            {submit.data.score} pts
+          </Text>
+          <Text style={styles.resultTime}>
+            {(submit.data.timeMs / 1000).toFixed(0)}s
           </Text>
           {submit.data.suspect && (
-            <Text style={styles.suspect}>Suspect (trop rapide)</Text>
+            <Text style={styles.resultSuspect}>Resultat suspect</Text>
           )}
         </View>
-      ) : (
-        <Pressable
-          style={[styles.btn, submit.isPending && styles.btnDisabled]}
-          onPress={handleSubmit}
-          disabled={submit.isPending}
-        >
-          <Text style={styles.btnText}>
-            {submit.isPending ? "Envoi..." : "Soumettre"}
-          </Text>
-        </Pressable>
+      ) : null}
+
+      {/* Puzzle board */}
+      <PuzzleBoard
+        grid={data.grid}
+        onSubmit={handleSubmit}
+        submitted={submitted}
+      />
+
+      {/* Loading overlay during submission */}
+      {submit.isPending && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 4 },
-  meta: { fontSize: 14, color: "#888", marginBottom: 24 },
-  puzzleArea: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 16,
+  container: { flex: 1, backgroundColor: "#fff" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
+  errorText: { fontSize: 16, color: "#888" },
+  retryBtn: {
+    backgroundColor: "#1a1a1a",
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+  },
+  retryBtnText: { color: "#fff", fontWeight: "600" },
+  resultOverlay: {
+    backgroundColor: "#f9f9f9",
+    padding: 20,
+    alignItems: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#eee",
+  },
+  resultEmoji: { fontSize: 32, marginBottom: 4 },
+  resultTitle: { fontSize: 20, fontWeight: "700", color: "#1a1a1a" },
+  resultScore: { fontSize: 28, fontWeight: "300", color: "#1a1a1a", marginTop: 2 },
+  resultTime: { fontSize: 14, color: "#888", marginTop: 2 },
+  resultSuspect: { fontSize: 12, color: "#e74c3c", marginTop: 4 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
   },
-  stub: { fontSize: 20, fontWeight: "600", color: "#bbb" },
-  hint: { fontSize: 12, color: "#ccc", marginTop: 8 },
-  btn: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 14,
-    paddingHorizontal: 48,
-    borderRadius: 12,
-  },
-  btnDisabled: { opacity: 0.5 },
-  btnText: { color: "#fff", fontSize: 18, fontWeight: "600" },
-  result: { alignItems: "center", gap: 4 },
-  resultTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
-  resultText: { fontSize: 16 },
-  suspect: { color: "red", marginTop: 8 },
-  error: { fontSize: 16, color: "red", marginBottom: 12 },
 });
