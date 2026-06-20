@@ -72,6 +72,17 @@ export default function LeaguesScreen() {
     );
   }
 
+  if (leagues.error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.error}>Erreur de chargement</Text>
+        <Pressable style={styles.btn} onPress={() => leagues.refetch()}>
+          <Text style={styles.btnText}>Reessayer</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.actions}>
@@ -118,6 +129,7 @@ export default function LeaguesScreen() {
         data={leagues.data?.leagues ?? []}
         keyExtractor={(item) => item.leagueId}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={<Text style={styles.empty}>Aucune ligue. Creez-en une ou rejoignez par code !</Text>}
         renderItem={({ item }) => (
           <Pressable
             style={styles.card}
@@ -146,7 +158,9 @@ export default function LeaguesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
+  error: { fontSize: 16, color: "red", marginBottom: 8 },
+  empty: { textAlign: "center", color: "#aaa", fontSize: 14, marginTop: 24 },
   actions: { flexDirection: "row", gap: 12, marginBottom: 16 },
   btn: {
     backgroundColor: "#007AFF",

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from "react-native";
 import { useProfile } from "../../lib/hooks";
 
 export default function ProfileScreen() {
@@ -16,6 +16,9 @@ export default function ProfileScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>Erreur de chargement</Text>
+        <Pressable style={{ backgroundColor: "#007AFF", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 }} onPress={() => profile.refetch()}>
+          <Text style={{ color: "#fff", fontWeight: "600" }}>Reessayer</Text>
+        </Pressable>
       </View>
     );
   }
@@ -30,8 +33,8 @@ export default function ProfileScreen() {
       {badges.length === 0 ? (
         <Text style={styles.empty}>Aucun badge pour le moment</Text>
       ) : (
-        badges.map((b, i) => (
-          <View key={i} style={styles.badgeCard}>
+        badges.map((b) => (
+          <View key={`${b.code}-${b.awardedAt}`} style={styles.badgeCard}>
             <Text style={styles.badgeName}>{b.name}</Text>
             <Text style={styles.badgeDesc}>{b.description}</Text>
           </View>
@@ -42,8 +45,8 @@ export default function ProfileScreen() {
       {monthlyHistory.length === 0 ? (
         <Text style={styles.empty}>Pas encore d'historique</Text>
       ) : (
-        monthlyHistory.map((h, i) => (
-          <View key={i} style={styles.historyCard}>
+        monthlyHistory.map((h) => (
+          <View key={`${h.month}-${h.leagueId}`} style={styles.historyCard}>
             <View style={styles.historyHeader}>
               <Text style={styles.historyMonth}>{h.month}</Text>
               <Text style={styles.historyRank}>#{h.finalRank}</Text>
