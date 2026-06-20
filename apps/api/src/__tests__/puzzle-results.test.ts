@@ -139,17 +139,24 @@ describe("POST /results", () => {
       data: { servedAt: new Date(Date.now() - 30_000) }, // 30s ago
     });
 
+    // Get the real solution from DB
+    const dbPuzzle = await prisma.puzzle.findUnique({
+      where: { id: puzzleRes.body.puzzleId },
+    });
+    const solution = (dbPuzzle?.solution as any)?.rows ?? [{a:"1"},{a:"2"},{a:"3"},{a:"4"}];
+
     const res = await supertest(app.server)
       .post("/results")
       .set("Authorization", `Bearer ${freshToken}`)
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 3, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
+        cleanDeductions: 3, solution,
       })
       .expect(200);
 
     expect(res.body.suspect).toBe(false);
+    expect(res.body.correct).toBe(true);
     expect(res.body.score).toBeGreaterThan(0);
 
     // Verify monthly_score was created

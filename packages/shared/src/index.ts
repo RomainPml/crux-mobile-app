@@ -1,3 +1,3 @@
-export * from "./schemas.js";
-export * from "./types.js";
-export * from "./date.js";
+export * from "./schemas";
+export * from "./types";
+export * from "./date";

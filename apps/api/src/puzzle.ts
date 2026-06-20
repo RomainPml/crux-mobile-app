@@ -13,7 +13,6 @@ export async function puzzleRoutes(app: FastifyInstance) {
     let puzzle = await prisma.puzzle.findUnique({ where: { day: new Date(day) } });
 
     if (!puzzle) {
-      // Generate new puzzle
       const { grid, solution } = generatePuzzle(day);
       puzzle = await prisma.puzzle.create({
         data: {
@@ -22,6 +21,13 @@ export async function puzzleRoutes(app: FastifyInstance) {
           gridData: grid as any,
           solution: solution as any,
         },
+      });
+    } else if (!puzzle.gridData) {
+      // Backfill grid for legacy puzzles created before the generator
+      const { grid, solution } = generatePuzzle(day);
+      puzzle = await prisma.puzzle.update({
+        where: { id: puzzle.id },
+        data: { gridData: grid as any, solution: solution as any },
       });
     }
 

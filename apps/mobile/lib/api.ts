@@ -53,6 +53,7 @@ async function getToken(): Promise<string> {
 
   // No token yet — authenticate
   const deviceKey = await getOrCreateDeviceKey();
+  console.log("[Auth] Authenticating with", API_URL);
   const res = await fetch(`${API_URL}/auth/anon`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -111,11 +112,13 @@ const PUZZLE_CACHE_KEY = "crux_puzzle_cache";
 async function getPuzzleTodayCached(): Promise<PuzzleTodayResponse> {
   try {
     const response = await apiFetch<PuzzleTodayResponse>("/puzzles/today");
-    await AsyncStorage.setItem(PUZZLE_CACHE_KEY, JSON.stringify(response));
+    // Cache for offline use (fire-and-forget)
+    AsyncStorage.setItem(PUZZLE_CACHE_KEY, JSON.stringify(response)).catch(() => {});
     return response;
   } catch (error) {
+    console.log("[Puzzle] Fetch failed, trying cache:", error);
     // Fallback to cache if offline
-    const cached = await AsyncStorage.getItem(PUZZLE_CACHE_KEY);
+    const cached = await AsyncStorage.getItem(PUZZLE_CACHE_KEY).catch(() => null);
     if (cached) {
       const parsed = JSON.parse(cached) as PuzzleTodayResponse;
       if (parsed.day === todayDate()) return parsed;

@@ -58,7 +58,7 @@ export async function resultRoutes(app: FastifyInstance) {
 
     // Validate solution if puzzle has a stored solution
     const correct = puzzle.solution
-      ? validateSolution(puzzle.solution as Record<string, string>[], body.solution)
+      ? validateSolution((puzzle.solution as any).rows as Record<string, string>[], body.solution)
       : true; // legacy puzzles without solution are auto-correct
 
     const submittedAt = new Date();

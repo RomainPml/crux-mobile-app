@@ -58,13 +58,17 @@ describe("E2E: full user journey", () => {
       data: { servedAt: new Date(Date.now() - 45_000) },
     });
 
+    // Get real solution from DB
+    const dbPuzzle = await prisma.puzzle.findUnique({ where: { id: puzzleRes.body.puzzleId } });
+    const solution = (dbPuzzle?.solution as any)?.rows ?? [{a:"1"},{a:"2"},{a:"3"},{a:"4"}];
+
     const res = await supertest(app.server)
       .post("/results")
       .set("Authorization", `Bearer ${tokenA}`)
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 4, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
+        cleanDeductions: 4, solution,
       })
       .expect(200);
 
@@ -105,13 +109,16 @@ describe("E2E: full user journey", () => {
       data: { servedAt: new Date(Date.now() - 60_000) },
     });
 
+    const dbPuzzleB = await prisma.puzzle.findUnique({ where: { id: puzzleRes.body.puzzleId } });
+    const solutionB = (dbPuzzleB?.solution as any)?.rows ?? [{a:"1"},{a:"2"},{a:"3"},{a:"4"}];
+
     await supertest(app.server)
       .post("/results")
       .set("Authorization", `Bearer ${tokenB}`)
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 2, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
+        cleanDeductions: 2, solution: solutionB,
       })
       .expect(200);
 

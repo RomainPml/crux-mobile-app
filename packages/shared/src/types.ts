@@ -1,5 +1,5 @@
 import { z } from "zod";
-import * as S from "./schemas.js";
+import * as S from "./schemas";
 
 export type AnonAuthRequest = z.infer<typeof S.AnonAuthRequestSchema>;
 export type AnonAuthResponse = z.infer<typeof S.AnonAuthResponseSchema>;
