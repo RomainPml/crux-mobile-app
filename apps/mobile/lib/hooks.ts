@@ -31,12 +31,13 @@ export function useMonthStatus() {
   });
 }
 
-export function usePuzzleByDate(date: string) {
+export function usePuzzleByDate(date: string, enabled = true) {
   return useQuery({
     queryKey: ["puzzle", date],
     queryFn: () => api.getPuzzleByDate(date),
     staleTime: Infinity,
     retry: false,
+    enabled,
   });
 }
 
