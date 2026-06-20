@@ -20,6 +20,7 @@ export default function PuzzleScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>Erreur de chargement</Text>
+        <Text style={styles.errorDetail}>{puzzle.error?.message ?? "Reponse vide"}</Text>
         <Pressable style={styles.retryBtn} onPress={() => puzzle.refetch()}>
           <Text style={styles.retryBtnText}>Reessayer</Text>
         </Pressable>
@@ -88,6 +89,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
   errorText: { fontSize: 16, color: "#888" },
+  errorDetail: { fontSize: 12, color: "#bbb", marginTop: 4, textAlign: "center", paddingHorizontal: 24 },
   retryBtn: {
     backgroundColor: "#1a1a1a",
     paddingVertical: 10,

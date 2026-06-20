@@ -24,17 +24,19 @@ const DEVICE_KEY_STORE = "crux_device_key";
 const TOKEN_STORE = "crux_token";
 
 function randomDeviceKey(): string {
-  const bytes = new Uint8Array(48);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return require("expo-crypto").getRandomBytes(48)
+    .reduce((s: string, b: number) => s + b.toString(16).padStart(2, "0"), "");
 }
 
 async function getOrCreateDeviceKey(): Promise<string> {
-  let key = await SecureStore.getItemAsync(DEVICE_KEY_STORE);
-  if (!key) {
-    key = randomDeviceKey();
+  try {
+    const key = await SecureStore.getItemAsync(DEVICE_KEY_STORE);
+    if (key) return key;
+  } catch {}
+  const key = randomDeviceKey();
+  try {
     await SecureStore.setItemAsync(DEVICE_KEY_STORE, key);
-  }
+  } catch {}
   return key;
 }
 
@@ -43,24 +45,27 @@ let cachedToken: string | null = null;
 async function getToken(): Promise<string> {
   if (cachedToken) return cachedToken;
 
-  let token = await SecureStore.getItemAsync(TOKEN_STORE);
-  if (token) {
-    cachedToken = token;
-    return token;
-  }
+  try {
+    const token = await SecureStore.getItemAsync(TOKEN_STORE);
+    if (token) {
+      cachedToken = token;
+      return token;
+    }
+  } catch {}
 
   // No token yet — authenticate
   const deviceKey = await getOrCreateDeviceKey();
-  console.log("[Auth] Authenticating with", API_URL);
   const res = await fetch(`${API_URL}/auth/anon`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ deviceKey }),
   });
-  if (!res.ok) throw new Error("Auth failed");
+  if (!res.ok) throw new Error(`Auth failed: ${res.status}`);
 
   const data: AnonAuthResponse = await res.json();
-  await SecureStore.setItemAsync(TOKEN_STORE, data.token);
+  try {
+    await SecureStore.setItemAsync(TOKEN_STORE, data.token);
+  } catch {}
   cachedToken = data.token;
   return data.token;
 }
