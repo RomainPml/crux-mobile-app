@@ -33,7 +33,8 @@ function DayStrip({ days, currentIndex, onDayPress }: {
       {days.map((d, i) => {
         const isActive = i === currentIndex;
         const bg = d.status === "completed" ? COLORS.correct
-          : d.status === "today" ? COLORS.present
+          : d.status === "today" ? COLORS.accent
+          : d.status === "missed" ? COLORS.present
           : COLORS.absent;
         return (
           <Pressable key={d.date} onPress={() => onDayPress(i)}
@@ -59,9 +60,9 @@ const ds = StyleSheet.create({
 });
 
 // ── Puzzle game ──
-function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: boolean; height: number }) {
+function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; isCatchUp: boolean; isCompleted: boolean; height: number }) {
   const todayQuery = usePuzzleToday();
-  const catchUpQuery = usePuzzleByDate(date);
+  const catchUpQuery = usePuzzleByDate(date, isCatchUp);
   const puzzle = isCatchUp ? catchUpQuery : todayQuery;
   const submitGuess = useSubmitGuess();
 
@@ -100,6 +101,8 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
           const newIdx = guesses.length;
           setGuesses((prev) => [...prev, { word: guess, result: res.result }]);
           setCurrentInput("");
+          // Keep keyboard open for next guess
+          setTimeout(() => inputRef.current?.focus(), 100);
           setTimeout(() => setRevealedRows((prev) => new Set(prev).add(newIdx)), 50);
 
           if (res.solved) {
@@ -119,12 +122,23 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
         },
         onError: () => {
           shake();
-          // Clear input after shake so user can retype
-          setTimeout(() => setCurrentInput(""), 300);
+          setTimeout(() => {
+            setCurrentInput("");
+            inputRef.current?.focus();
+          }, 300);
         },
       },
     );
   }, [currentInput, wl, data, gameOver, submitGuess, guesses.length]);
+
+  if (isCompleted) {
+    return (
+      <View style={[gs.center, { height }]}>
+        <Text style={{ fontSize: 32 }}>{"\u2705"}</Text>
+        <Text style={gs.doneText}>Termine !</Text>
+      </View>
+    );
+  }
 
   if (puzzle.isLoading) return <View style={[gs.center, { height }]}><ActivityIndicator color={COLORS.accent} /></View>;
 
@@ -133,7 +147,14 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
     if (msg.includes("deja complete")) {
       return <View style={[gs.center, { height }]}><Text style={gs.doneText}>Deja joue !</Text></View>;
     }
-    return <View style={[gs.center, { height }]}><Text style={gs.errorText}>{msg || "Erreur"}</Text></View>;
+    return (
+      <View style={[gs.center, { height }]}>
+        <Text style={gs.errorText}>{msg || "Erreur de chargement"}</Text>
+        <Pressable style={gs.retryBtn} onPress={() => puzzle.refetch()}>
+          <Text style={gs.retryBtnText}>Reessayer</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   return (
@@ -164,8 +185,8 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
         </Animated.View>
       )}
 
-      {/* Grid — tappable to open keyboard */}
-      <Pressable style={gs.grid} onPress={() => inputRef.current?.focus()}>
+      {/* Grid */}
+      <View style={gs.grid}>
         {Array.from({ length: maxAttempts }).map((_, row) => {
           const guess = guesses[row];
           const isCurrentRow = row === guesses.length && !gameOver;
@@ -192,34 +213,37 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
             </Animated.View>
           );
         })}
-      </Pressable>
+      </View>
 
-      {/* Hidden input */}
+      {/* Input bar */}
       {!gameOver && (
-        <TextInput
-          ref={inputRef}
-          style={gs.hiddenInput}
-          value={currentInput}
-          onChangeText={(t) => setCurrentInput(t.replace(/[^a-zA-Z]/g, "").slice(0, wl))}
-          onSubmitEditing={handleSubmit}
-          maxLength={wl}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          autoFocus={!isCatchUp}
-          returnKeyType="send"
-          editable={!submitGuess.isPending}
-        />
-      )}
-
-      {/* FAB — submit without dismissing keyboard */}
-      {!gameOver && currentInput.length === wl && (
-        <Pressable
-          style={gs.fab}
-          onPress={() => { handleSubmit(); inputRef.current?.focus(); }}
-          hitSlop={12}
-        >
-          <Text style={gs.fabText}>{submitGuess.isPending ? "..." : "\u2713"}</Text>
-        </Pressable>
+        <View style={gs.inputBar}>
+          <TextInput
+            ref={inputRef}
+            style={gs.textInput}
+            value={currentInput}
+            onChangeText={(t) => setCurrentInput(t.replace(/[^a-zA-Z]/g, "").slice(0, wl))}
+            onSubmitEditing={handleSubmit}
+            maxLength={wl}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoComplete="off"
+            spellCheck={false}
+            autoFocus
+            returnKeyType="send"
+            blurOnSubmit={false}
+            editable={!submitGuess.isPending}
+            placeholder={`${wl} lettres`}
+            placeholderTextColor={COLORS.textMuted}
+          />
+          <Pressable
+            style={[gs.sendBtn, currentInput.length < wl && gs.sendBtnDisabled]}
+            onPress={handleSubmit}
+            disabled={currentInput.length < wl || submitGuess.isPending}
+          >
+            <Text style={gs.sendBtnText}>{submitGuess.isPending ? "..." : "\u2713"}</Text>
+          </Pressable>
+        </View>
       )}
     </View>
   );
@@ -231,17 +255,17 @@ export default function PuzzleScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [contentHeight, setContentHeight] = useState(SH - 200);
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const daysList: { date: string; status: string }[] = [];
+  let todayIndex = 0;
   if (monthStatus.data) {
     const entries = Object.entries(monthStatus.data.days).sort(([a], [b]) => a.localeCompare(b));
     for (const [date, status] of entries) {
-      if (status === "missed" || status === "today") daysList.push({ date, status });
+      if (status === "today") todayIndex = daysList.length;
+      daysList.push({ date, status });
     }
   }
-
-  // Today is always the last item — scroll there initially
-  const todayIndex = daysList.length - 1;
 
   const onViewable = useCallback(({ viewableItems }: any) => {
     if (viewableItems.length > 0) setCurrentIndex(viewableItems[0].index ?? 0);
@@ -257,7 +281,6 @@ export default function PuzzleScreen() {
     <View
       style={gs.container}
       onLayout={(e) => {
-        // Measure available height below the day strip
         setContentHeight(e.nativeEvent.layout.height - 60);
       }}
     >
@@ -275,11 +298,11 @@ export default function PuzzleScreen() {
         initialScrollIndex={todayIndex}
         getItemLayout={(_, i) => ({ length: SW, offset: SW * i, index: i })}
         onViewableItemsChanged={onViewable}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+        viewabilityConfig={viewabilityConfig}
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => (
           <View style={{ width: SW, height: contentHeight }}>
-            <PuzzleGame date={item.date} isCatchUp={item.status === "missed"} height={contentHeight} />
+            <PuzzleGame key={item.date} date={item.date} isCatchUp={item.status === "missed"} isCompleted={item.status === "completed"} height={contentHeight} />
           </View>
         )}
       />
@@ -290,7 +313,9 @@ export default function PuzzleScreen() {
 const gs = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   center: { flex: 1, backgroundColor: COLORS.bg, justifyContent: "center", alignItems: "center" },
-  errorText: { fontSize: FONT.md, color: COLORS.textSecondary, textAlign: "center", padding: SPACING.lg },
+  errorText: { fontSize: FONT.md, color: COLORS.textSecondary, textAlign: "center", padding: SPACING.lg, marginBottom: SPACING.sm },
+  retryBtn: { backgroundColor: COLORS.accent, paddingVertical: 10, paddingHorizontal: 24, borderRadius: RADIUS.md },
+  retryBtnText: { color: "#fff", fontWeight: "600", fontSize: FONT.sm },
   doneText: { fontSize: FONT.lg, color: COLORS.correct, fontWeight: "600" },
   catchUpBanner: { backgroundColor: COLORS.present, paddingVertical: 4, alignItems: "center" },
   catchUpText: { color: "#fff", fontSize: FONT.xs, fontWeight: "600" },
@@ -299,15 +324,22 @@ const gs = StyleSheet.create({
   bannerLose: { backgroundColor: COLORS.absent },
   bannerText: { color: "#fff", fontSize: FONT.xl, fontWeight: "700" },
   bannerSub: { color: "rgba(255,255,255,0.7)", fontSize: FONT.sm, marginTop: SPACING.xs },
-  grid: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6 },
-  gridRow: { flexDirection: "row", gap: 6 },
-  hiddenInput: { position: "absolute", opacity: 0, height: 0 },
-  fab: {
-    position: "absolute", bottom: SPACING.lg, right: SPACING.lg,
-    width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.accent,
-    justifyContent: "center", alignItems: "center",
-    shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8,
-    elevation: 8,
+  grid: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
+  gridRow: { flexDirection: "row", gap: 4 },
+  inputBar: {
+    flexDirection: "row", paddingHorizontal: SPACING.md, paddingBottom: SPACING.sm,
+    gap: SPACING.sm, alignItems: "center",
   },
-  fabText: { color: "#fff", fontSize: 24, fontWeight: "700" },
+  textInput: {
+    flex: 1, backgroundColor: COLORS.bgInput, color: COLORS.textPrimary,
+    fontSize: FONT.xl, fontWeight: "700", letterSpacing: 6, textAlign: "center",
+    paddingVertical: 12, borderRadius: RADIUS.md, textTransform: "uppercase",
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  sendBtn: {
+    backgroundColor: COLORS.accent, width: 48, height: 48, borderRadius: RADIUS.md,
+    justifyContent: "center", alignItems: "center",
+  },
+  sendBtnDisabled: { opacity: 0.3 },
+  sendBtnText: { color: "#fff", fontSize: 22, fontWeight: "700" },
 });
