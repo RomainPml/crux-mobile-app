@@ -10,7 +10,7 @@ datasource db {
 model User {
   id            String   @id @default(cuid())
   deviceKeyHash String   @unique @map("device_key_hash")
-  pseudo        String?
+  pseudo        String?  @unique
   createdAt     DateTime @default(now()) @map("created_at")
 
   dailyResults          DailyResult[]
@@ -29,6 +29,8 @@ model Puzzle {
   id         String   @id @default(cuid())
   day        DateTime @unique @db.Date
   difficulty Int      @default(1)
+  gridData   Json?    @map("grid_data")
+  solution   Json?
 
   dailyResults DailyResult[]
   puzzleServes PuzzleServe[]
@@ -59,6 +61,7 @@ model DailyResult {
   servedAt         DateTime @map("served_at")
   submittedAt      DateTime @default(now()) @map("submitted_at")
   suspect          Boolean  @default(false)
+  correct          Boolean  @default(false)
 
   user   User   @relation(fields: [userId], references: [id])
   puzzle Puzzle @relation(fields: [puzzleId], references: [id])

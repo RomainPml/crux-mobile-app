@@ -64,7 +64,7 @@ describe("E2E: full user journey", () => {
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 4,
+        cleanDeductions: 4, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
       })
       .expect(200);
 
@@ -111,7 +111,7 @@ describe("E2E: full user journey", () => {
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 2,
+        cleanDeductions: 2, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
       })
       .expect(200);
 

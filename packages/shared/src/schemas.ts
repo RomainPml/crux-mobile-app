@@ -10,18 +10,44 @@ export const AnonAuthResponseSchema = z.object({
   userId: z.string(),
 });
 
+// ── Puzzle Grid ──
+export const PuzzleCategorySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  items: z.array(z.string()).length(4),
+});
+
+export const ClueTypeSchema = z.enum([
+  "direct_positive",
+  "direct_negative",
+  "either_or",
+]);
+
+export const PuzzleClueSchema = z.object({
+  id: z.number(),
+  text: z.string(),
+  type: ClueTypeSchema,
+});
+
+export const PuzzleGridSchema = z.object({
+  categories: z.array(PuzzleCategorySchema).length(4),
+  clues: z.array(PuzzleClueSchema),
+});
+
 // ── Puzzle ──
 export const PuzzleTodayResponseSchema = z.object({
   puzzleId: z.string(),
-  day: z.string(), // YYYY-MM-DD
+  day: z.string(),
   difficulty: z.number().int().min(1).max(5),
   servedAt: z.string().datetime(),
+  grid: PuzzleGridSchema,
 });
 
 // ── Result ──
 export const SubmitResultRequestSchema = z.object({
   puzzleId: z.string(),
-  cleanDeductions: z.number().int().min(0).max(10),
+  cleanDeductions: z.number().int().min(0).max(20),
+  solution: z.array(z.record(z.string())).length(4),
 });
 
 export const SubmitResultResponseSchema = z.object({
@@ -29,6 +55,7 @@ export const SubmitResultResponseSchema = z.object({
   score: z.number().int(),
   timeMs: z.number().int(),
   suspect: z.boolean(),
+  correct: z.boolean(),
 });
 
 // ── League ──
@@ -74,6 +101,19 @@ export const StandingsResponseSchema = z.object({
 });
 
 // ── Profile ──
+export const UpdateProfileRequestSchema = z.object({
+  pseudo: z
+    .string()
+    .min(2)
+    .max(20)
+    .regex(/^[a-zA-Z0-9_-]+$/, "Lettres, chiffres, _ et - uniquement"),
+});
+
+export const UpdateProfileResponseSchema = z.object({
+  userId: z.string(),
+  pseudo: z.string(),
+});
+
 export const BadgeSchema = z.object({
   code: z.string(),
   name: z.string(),

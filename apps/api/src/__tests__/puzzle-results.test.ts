@@ -60,7 +60,7 @@ describe("POST /results", () => {
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 3,
+        cleanDeductions: 3, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
       })
       .expect(200);
 
@@ -84,7 +84,7 @@ describe("POST /results", () => {
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 5,
+        cleanDeductions: 5, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
       })
       .expect(200);
 
@@ -94,7 +94,7 @@ describe("POST /results", () => {
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 5,
+        cleanDeductions: 5, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
       })
       .expect(200);
 
@@ -108,7 +108,7 @@ describe("POST /results", () => {
       .send({
         puzzleId: "nonexistent-puzzle-id",
         servedAt: new Date().toISOString(),
-        cleanDeductions: 0,
+        cleanDeductions: 0, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
       })
       .expect(404);
   });
@@ -145,7 +145,7 @@ describe("POST /results", () => {
       .send({
         puzzleId: puzzleRes.body.puzzleId,
         servedAt: puzzleRes.body.servedAt,
-        cleanDeductions: 3,
+        cleanDeductions: 3, solution: [{a:"1"},{a:"2"},{a:"3"},{a:"4"}],
       })
       .expect(200);
 
