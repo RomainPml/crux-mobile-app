@@ -11,9 +11,32 @@ export function usePuzzleToday() {
 }
 
 export function useSubmitGuess() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ puzzleId, guess }: { puzzleId: string; guess: string }) =>
       api.submitGuess(puzzleId, guess),
+    onSuccess: (data) => {
+      if (data.solved || data.attemptsUsed >= data.maxAttempts) {
+        qc.invalidateQueries({ queryKey: ["month-status"] });
+      }
+    },
+  });
+}
+
+export function useMonthStatus() {
+  return useQuery({
+    queryKey: ["month-status"],
+    queryFn: api.getMonthStatus,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function usePuzzleByDate(date: string) {
+  return useQuery({
+    queryKey: ["puzzle", date],
+    queryFn: () => api.getPuzzleByDate(date),
+    staleTime: Infinity,
+    retry: false,
   });
 }
 

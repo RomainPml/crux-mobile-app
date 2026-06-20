@@ -3,6 +3,7 @@ import type {
   AnonAuthResponse,
   PuzzleTodayResponse,
   GuessResponse,
+  MonthStatusResponse,
   CreateLeagueRequest,
   CreateLeagueResponse,
   JoinLeagueRequest,
@@ -138,6 +139,12 @@ async function getPuzzleTodayCached(): Promise<PuzzleTodayResponse> {
 
 export const api = {
   getPuzzleToday: () => getPuzzleTodayCached(),
+
+  getPuzzleByDate: (date: string) =>
+    apiFetch<PuzzleTodayResponse>(`/puzzles/day/${date}`),
+
+  getMonthStatus: () =>
+    apiFetch<MonthStatusResponse>("/puzzles/month-status"),
 
   submitGuess: (puzzleId: string, guess: string) =>
     apiFetch<GuessResponse>(`/puzzles/${puzzleId}/guess`, {
