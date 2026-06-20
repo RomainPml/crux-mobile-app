@@ -18,8 +18,7 @@ import { Platform } from "react-native";
 // Android emulator uses 10.0.2.2 to reach the host machine
 const DEFAULT_API_URL = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
 
-// @ts-ignore — Expo injects EXPO_PUBLIC_ vars at build time
-const API_URL: string = (globalThis as any).process?.env?.EXPO_PUBLIC_API_URL || DEFAULT_API_URL;
+const API_URL: string = DEFAULT_API_URL;
 
 const DEVICE_KEY_STORE = "crux_device_key";
 const TOKEN_STORE = "crux_token";

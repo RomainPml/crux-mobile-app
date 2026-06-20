@@ -26,9 +26,16 @@ async function uniqueCode(): Promise<string> {
 }
 
 export async function leagueRoutes(app: FastifyInstance) {
-  app.post("/leagues", { preHandler: [authenticate] }, async (request) => {
+  app.post("/leagues", { preHandler: [authenticate] }, async (request, reply) => {
     const body = CreateLeagueRequestSchema.parse(request.body);
     const userId = request.user.sub;
+
+    // Limit league creation per user
+    const ownedCount = await prisma.league.count({ where: { ownerId: userId } });
+    if (ownedCount >= 20) {
+      return reply.code(400).send({ error: "Maximum 20 leagues per user" });
+    }
+
     const code = await uniqueCode();
 
     const league = await prisma.league.create({

@@ -13,13 +13,13 @@ beforeAll(async () => {
 
   const resA = await supertest(app.server)
     .post("/auth/anon")
-    .send({ deviceKey: "league-test-user-a-12345" });
+    .send({ deviceKey: `league-test-user-a-${Date.now()}` });
   tokenA = resA.body.token;
   userIdA = resA.body.userId;
 
   const resB = await supertest(app.server)
     .post("/auth/anon")
-    .send({ deviceKey: "league-test-user-b-12345" });
+    .send({ deviceKey: `league-test-user-b-${Date.now()}` });
   tokenB = resB.body.token;
 });
 

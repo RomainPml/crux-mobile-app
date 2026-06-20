@@ -69,57 +69,72 @@ async function awardPlayerBadges(month: string) {
   const monthStart = new Date(year, mon - 1, 1);
   const monthEnd = new Date(year, mon, 0); // last day of month
 
-  // Get all users who played during this month
+  // Query window extends 30 days before month start to detect cross-month streaks
+  const lookbackStart = new Date(monthStart.getTime() - 30 * 86_400_000);
+
   const usersWithResults = await prisma.dailyResult.findMany({
     where: {
-      submittedAt: { gte: monthStart, lte: new Date(monthEnd.getTime() + 86_400_000) },
+      submittedAt: { gte: lookbackStart, lte: new Date(monthEnd.getTime() + 86_400_000) },
       suspect: false,
     },
     select: { userId: true, puzzleId: true, cleanDeductions: true, submittedAt: true },
     orderBy: { submittedAt: "asc" },
   });
 
-  // Group by user
-  const userResults = new Map<string, { dates: Set<string>; hasPerfect: boolean }>();
+  const monthPrefix = month; // YYYY-MM
+
+  // Group by user (all dates including lookback, but sans_faute only for current month)
+  const userResults = new Map<string, { allDates: Set<string>; hasPerfect: boolean }>();
   for (const r of usersWithResults) {
     const day = r.submittedAt.toISOString().slice(0, 10);
     let entry = userResults.get(r.userId);
     if (!entry) {
-      entry = { dates: new Set(), hasPerfect: false };
+      entry = { allDates: new Set(), hasPerfect: false };
       userResults.set(r.userId, entry);
     }
-    entry.dates.add(day);
-    if (r.cleanDeductions > 0) {
+    entry.allDates.add(day);
+    // sans_faute only counts for days in the current month
+    if (r.cleanDeductions > 0 && day.startsWith(monthPrefix)) {
       entry.hasPerfect = true;
     }
   }
 
   for (const [userId, data] of userResults) {
-    // sans_faute: at least one puzzle with clean deductions > 0
     if (data.hasPerfect) {
       await awardBadge(userId, "sans_faute", { month });
     }
 
-    // Streak badges: find longest consecutive run in this month
-    const sortedDays = [...data.dates].sort();
-    let maxStreak = 1;
+    // Streak badges: find streaks that touch the current month
+    const sortedDays = [...data.allDates].sort();
+    let maxStreakInMonth = 0;
     let currentStreak = 1;
+    let streakTouchesMonth = sortedDays[0]?.startsWith(monthPrefix) ?? false;
+
     for (let i = 1; i < sortedDays.length; i++) {
       const prev = new Date(sortedDays[i - 1]);
       const curr = new Date(sortedDays[i]);
       const diff = (curr.getTime() - prev.getTime()) / 86_400_000;
       if (diff === 1) {
         currentStreak++;
-        maxStreak = Math.max(maxStreak, currentStreak);
+        if (sortedDays[i].startsWith(monthPrefix)) streakTouchesMonth = true;
       } else {
+        // End of streak — record if it touched the current month
+        if (streakTouchesMonth) {
+          maxStreakInMonth = Math.max(maxStreakInMonth, currentStreak);
+        }
         currentStreak = 1;
+        streakTouchesMonth = sortedDays[i].startsWith(monthPrefix);
       }
     }
+    // Final streak
+    if (streakTouchesMonth) {
+      maxStreakInMonth = Math.max(maxStreakInMonth, currentStreak);
+    }
 
-    if (maxStreak >= 7) {
+    if (maxStreakInMonth >= 7) {
       await awardBadge(userId, "serie_7", { month });
     }
-    if (maxStreak >= 30) {
+    if (maxStreakInMonth >= 30) {
       await awardBadge(userId, "serie_30", { month });
     }
   }

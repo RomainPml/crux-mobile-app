@@ -22,11 +22,12 @@ describe("E2E: full user journey", () => {
   let userIdB: string;
   let leagueId: string;
   let leagueCode: string;
+  const testId = Date.now();
 
   it("1. User A authenticates anonymously", async () => {
     const res = await supertest(app.server)
       .post("/auth/anon")
-      .send({ deviceKey: "e2e-user-a-device-key-1234" })
+      .send({ deviceKey: `e2e-user-a-${testId}` })
       .expect(200);
 
     tokenA = res.body.token;
@@ -86,7 +87,7 @@ describe("E2E: full user journey", () => {
   it("5. User B authenticates and joins via code", async () => {
     const authRes = await supertest(app.server)
       .post("/auth/anon")
-      .send({ deviceKey: "e2e-user-b-device-key-1234" })
+      .send({ deviceKey: `e2e-user-b-${testId}` })
       .expect(200);
 
     tokenB = authRes.body.token;
