@@ -17,9 +17,10 @@ interface Props {
   bounce?: boolean;
   bounceDelay?: number;
   instant?: boolean;
+  size?: number;
 }
 
-export default function AnimatedCell({ letter, result, revealed, delay, bounce, bounceDelay = 0, instant }: Props) {
+export default function AnimatedCell({ letter, result, revealed, delay, bounce, bounceDelay = 0, instant, size }: Props) {
   const flipAnim = useRef(new Animated.Value(instant && revealed ? 1 : 0)).current;
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const hasRevealed = useRef(instant && revealed);
@@ -68,33 +69,35 @@ export default function AnimatedCell({ letter, result, revealed, delay, bounce, 
       })
     : letter ? "#565758" : "#3a3a3c";
 
+  const s = size ?? 52;
+  const fontSize = Math.round(s * 0.46);
+
   return (
     <Animated.View
       style={[
         styles.cell,
         {
+          width: s,
+          height: s,
           backgroundColor: bgColor,
           borderColor: borderColor as any,
           transform: [{ perspective: 300 }, { rotateX }, { translateY: bounceAnim }],
         },
       ]}
     >
-      <Text style={[styles.text, { color: letter ? "#fff" : "#555" }]}>{letter}</Text>
+      <Text style={[styles.text, { fontSize, color: letter ? "#fff" : "#555" }]}>{letter}</Text>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   cell: {
-    width: 52,
-    height: 52,
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 4,
   },
   text: {
-    fontSize: 24,
     fontWeight: "700",
   },
 });

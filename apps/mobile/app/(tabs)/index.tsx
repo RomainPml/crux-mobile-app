@@ -91,6 +91,13 @@ function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
   const wl = data?.config?.wordLength ?? 5;
   const maxAttempts = data?.config?.maxAttempts ?? 6;
 
+  const [gridHeight, setGridHeight] = useState(0);
+
+  // Dynamic cell size: fit within screen width AND available grid height
+  const maxByWidth = Math.floor((SW - 48 - (wl - 1) * 4) / wl);
+  const maxByHeight = gridHeight > 0 ? Math.floor((gridHeight - (maxAttempts - 1) * 4) / maxAttempts) : 52;
+  const cellSize = Math.min(52, maxByWidth, maxByHeight);
+
   // Restore session from AsyncStorage
   useEffect(() => {
     AsyncStorage.getItem(SESSION_KEY(date)).then((raw) => {
@@ -230,7 +237,7 @@ function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
         )}
 
         {/* Grid */}
-        <View style={gs.grid}>
+        <View style={gs.grid} onLayout={(e) => setGridHeight(e.nativeEvent.layout.height)}>
           {Array.from({ length: maxAttempts }).map((_, row) => {
             const guess = guesses[row];
             const isCurrentRow = row === guesses.length && !gameOver;
@@ -253,6 +260,7 @@ function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
                     bounce={isWin}
                     bounceDelay={col * 100}
                     instant={row < restoredCount.current}
+                    size={cellSize}
                   />
                 ))}
               </Animated.View>
@@ -377,7 +385,7 @@ const gs = StyleSheet.create({
   bannerLose: { backgroundColor: COLORS.absent },
   bannerText: { color: "#fff", fontSize: FONT.xl, fontWeight: "700" },
   bannerSub: { color: "rgba(255,255,255,0.7)", fontSize: FONT.sm, marginTop: SPACING.xs },
-  grid: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
+  grid: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4, overflow: "hidden" },
   gridRow: { flexDirection: "row", gap: 4 },
   inputBar: {
     flexDirection: "row", paddingHorizontal: SPACING.md, paddingBottom: SPACING.sm,
