@@ -157,9 +157,13 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
     );
   }
 
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus();
+  }, []);
+
   return (
-    <View style={{ height }}>
-      {/* Catch-up indicator — inline with day strip, not a separate banner */}
+    <Pressable style={{ height }} onPress={focusInput}>
+      {/* Catch-up indicator */}
       {isCatchUp && !gameOver && (
         <View style={gs.catchUpBanner}>
           <Text style={gs.catchUpText}>
@@ -185,8 +189,8 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
         </Animated.View>
       )}
 
-      {/* Grid — tap to open keyboard */}
-      <Pressable style={gs.grid} onPress={() => inputRef.current?.focus()}>
+      {/* Grid */}
+      <View style={gs.grid}>
         {Array.from({ length: maxAttempts }).map((_, row) => {
           const guess = guesses[row];
           const isCurrentRow = row === guesses.length && !gameOver;
@@ -213,7 +217,7 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
             </Animated.View>
           );
         })}
-      </Pressable>
+      </View>
 
       {/* Input bar */}
       {!gameOver && (
@@ -245,7 +249,7 @@ function PuzzleGame({ date, isCatchUp, isCompleted, height }: { date: string; is
           </Pressable>
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
