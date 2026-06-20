@@ -17,20 +17,27 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     if (!user) {
-      user = await prisma.user.create({
-        data: { deviceKeyHash: hash },
-      });
+      try {
+        user = await prisma.user.create({
+          data: { deviceKeyHash: hash },
+        });
+      } catch (e: any) {
+        if (e.code === "P2002") {
+          user = await prisma.user.findUniqueOrThrow({
+            where: { deviceKeyHash: hash },
+          });
+        } else throw e;
+      }
 
-      // Auto-join global league
+      // Auto-join global league (idempotent)
       const globalLeague = await prisma.league.findUnique({
         where: { code: "GLOBAL" },
       });
       if (globalLeague) {
-        await prisma.membership.create({
-          data: {
-            leagueId: globalLeague.id,
-            userId: user.id,
-          },
+        await prisma.membership.upsert({
+          where: { leagueId_userId: { leagueId: globalLeague.id, userId: user.id } },
+          create: { leagueId: globalLeague.id, userId: user.id },
+          update: {},
         });
       }
     }

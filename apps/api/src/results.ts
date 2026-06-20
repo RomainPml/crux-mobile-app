@@ -57,20 +57,22 @@ export async function resultRoutes(app: FastifyInstance) {
     const score = suspect ? 0 : computeScore(timeMs, body.cleanDeductions);
     const month = currentMonth(submittedAt);
 
-    // Create result + update monthly score in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      const r = await tx.dailyResult.create({
-        data: {
-          userId,
-          puzzleId: body.puzzleId,
-          score,
-          timeMs,
-          cleanDeductions: body.cleanDeductions,
-          servedAt,
-          submittedAt,
-          suspect,
-        },
-      });
+    // Create result + update monthly score in a transaction (race-safe)
+    let result;
+    try {
+      result = await prisma.$transaction(async (tx) => {
+        const r = await tx.dailyResult.create({
+          data: {
+            userId,
+            puzzleId: body.puzzleId,
+            score,
+            timeMs,
+            cleanDeductions: body.cleanDeductions,
+            servedAt,
+            submittedAt,
+            suspect,
+          },
+        });
 
       if (!suspect) {
         await tx.monthlyScore.upsert({
@@ -91,9 +93,19 @@ export async function resultRoutes(app: FastifyInstance) {
       }
 
       return r;
-    });
+      });
+    } catch (e: any) {
+      // P2002 = concurrent duplicate submission — return existing
+      if (e.code === "P2002") {
+        const dup = await prisma.dailyResult.findUniqueOrThrow({
+          where: { userId_puzzleId: { userId, puzzleId: body.puzzleId } },
+        });
+        return { resultId: dup.id, score: dup.score, timeMs: dup.timeMs, suspect: dup.suspect };
+      }
+      throw e;
+    }
 
-    trackEvent("result_submitted", userId, { puzzleId: body.puzzleId, score, timeMs, suspect });
+    trackEvent("result_submitted", userId, { puzzleId: body.puzzleId, score, timeMs, suspect }).catch(() => {});
 
     return {
       resultId: result.id,

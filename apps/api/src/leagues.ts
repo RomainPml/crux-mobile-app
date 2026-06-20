@@ -58,16 +58,11 @@ export async function leagueRoutes(app: FastifyInstance) {
       return reply.code(404).send({ error: "League not found" });
     }
 
-    // Idempotent: if already a member, just return success
-    const existing = await prisma.membership.findUnique({
+    // Idempotent join via upsert (race-safe)
+    await prisma.membership.upsert({
       where: { leagueId_userId: { leagueId: league.id, userId } },
-    });
-    if (existing) {
-      return { leagueId: league.id, name: league.name };
-    }
-
-    await prisma.membership.create({
-      data: { leagueId: league.id, userId },
+      create: { leagueId: league.id, userId },
+      update: {},
     });
 
     trackEvent("invite_converted", userId, { leagueId: league.id, code: body.code });
