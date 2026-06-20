@@ -8,7 +8,7 @@ import type { LetterResult, GuessResponse, PuzzleTodayResponse } from "@crux/sha
 import AnimatedCell from "../../components/AnimatedCell";
 import { COLORS, SPACING, FONT, RADIUS } from "../../lib/theme";
 
-const { width: SW } = Dimensions.get("window");
+const { width: SW, height: SH } = Dimensions.get("window");
 
 // ── Day strip ──
 function DayStrip({ days, currentIndex, onDayPress }: {
@@ -39,7 +39,7 @@ function DayStrip({ days, currentIndex, onDayPress }: {
           <Pressable key={d.date} onPress={() => onDayPress(i)}
             style={[ds.day, { backgroundColor: bg }, isActive && ds.dayActive]}
           >
-            <Text style={[ds.dayNum, isActive && ds.dayNumActive]}>{d.date.slice(8)}</Text>
+            <Text style={[ds.dayNum, isActive && ds.dayNumActive]}>{parseInt(d.date.slice(8), 10)}</Text>
           </Pressable>
         );
       })}
@@ -50,16 +50,16 @@ function DayStrip({ days, currentIndex, onDayPress }: {
 const ds = StyleSheet.create({
   strip: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: 6 },
   day: {
-    width: 42, height: 42, borderRadius: RADIUS.sm,
+    width: 38, height: 38, borderRadius: RADIUS.sm,
     justifyContent: "center", alignItems: "center",
   },
   dayActive: { borderWidth: 2, borderColor: "#fff" },
-  dayNum: { fontSize: FONT.md, fontWeight: "600", color: "rgba(255,255,255,0.7)" },
+  dayNum: { fontSize: FONT.sm, fontWeight: "600", color: "rgba(255,255,255,0.7)" },
   dayNumActive: { color: "#fff", fontWeight: "700" },
 });
 
 // ── Puzzle game ──
-function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
+function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: boolean; height: number }) {
   const todayQuery = usePuzzleToday();
   const catchUpQuery = usePuzzleByDate(date);
   const puzzle = isCatchUp ? catchUpQuery : todayQuery;
@@ -100,23 +100,21 @@ function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
           const newIdx = guesses.length;
           setGuesses((prev) => [...prev, { word: guess, result: res.result }]);
           setCurrentInput("");
-          // Trigger reveal animation after a tick
           setTimeout(() => setRevealedRows((prev) => new Set(prev).add(newIdx)), 50);
 
           if (res.solved) {
-            // Win bounce after flip completes
-            setTimeout(() => setWinRow(newIdx), wl * 250 + 400);
+            setTimeout(() => setWinRow(newIdx), wl * 200 + 400);
             setTimeout(() => {
               setGameOver(true);
               setFinalResult(res);
               Animated.timing(bannerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-            }, wl * 250 + 800);
+            }, wl * 200 + 800);
           } else if (res.attemptsUsed >= res.maxAttempts) {
             setTimeout(() => {
               setGameOver(true);
               setFinalResult(res);
               Animated.timing(bannerAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-            }, wl * 250 + 400);
+            }, wl * 200 + 400);
           }
         },
         onError: () => shake(),
@@ -124,21 +122,24 @@ function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
     );
   }, [currentInput, wl, data, gameOver, submitGuess, guesses.length]);
 
-  if (puzzle.isLoading) return <View style={gs.center}><ActivityIndicator color={COLORS.accent} /></View>;
+  if (puzzle.isLoading) return <View style={[gs.center, { height }]}><ActivityIndicator color={COLORS.accent} /></View>;
 
   if (puzzle.error || !data) {
     const msg = (puzzle.error as any)?.message ?? "";
     if (msg.includes("deja complete")) {
-      return <View style={gs.center}><Text style={gs.doneText}>Deja joue !</Text></View>;
+      return <View style={[gs.center, { height }]}><Text style={gs.doneText}>Deja joue !</Text></View>;
     }
-    return <View style={gs.center}><Text style={gs.errorText}>{msg || "Erreur"}</Text></View>;
+    return <View style={[gs.center, { height }]}><Text style={gs.errorText}>{msg || "Erreur"}</Text></View>;
   }
 
   return (
-    <Pressable style={gs.page} onPress={() => inputRef.current?.focus()}>
+    <Pressable style={{ height }} onPress={() => inputRef.current?.focus()}>
+      {/* Catch-up banner */}
       {isCatchUp && !gameOver && (
         <View style={gs.catchUpBanner}>
-          <Text style={gs.catchUpText}>Rattrapage du {date.slice(5)} — 50% des points</Text>
+          <Text style={gs.catchUpText}>
+            Rattrapage du {parseInt(date.slice(8), 10)}/{parseInt(date.slice(5, 7), 10)} — 50% des points
+          </Text>
         </View>
       )}
 
@@ -206,6 +207,7 @@ function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
         />
       )}
 
+      {/* FAB */}
       {!gameOver && currentInput.length === wl && (
         <Pressable style={gs.fab} onPress={handleSubmit}>
           <Text style={gs.fabText}>{submitGuess.isPending ? "..." : "\u2713"}</Text>
@@ -219,7 +221,8 @@ function PuzzleGame({ date, isCatchUp }: { date: string; isCatchUp: boolean }) {
 export default function PuzzleScreen() {
   const monthStatus = useMonthStatus();
   const flatListRef = useRef<FlatList>(null);
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [contentHeight, setContentHeight] = useState(SH - 200);
 
   const daysList: { date: string; status: string }[] = [];
   if (monthStatus.data) {
@@ -229,8 +232,8 @@ export default function PuzzleScreen() {
     }
   }
 
-  const initialIndex = daysList.length - 1;
-  if (currentIndex === -1 && daysList.length > 0) setCurrentIndex(initialIndex);
+  // Today is always the last item — scroll there initially
+  const todayIndex = daysList.length - 1;
 
   const onViewable = useCallback(({ viewableItems }: any) => {
     if (viewableItems.length > 0) setCurrentIndex(viewableItems[0].index ?? 0);
@@ -240,11 +243,19 @@ export default function PuzzleScreen() {
     return <View style={gs.center}><ActivityIndicator color={COLORS.accent} /></View>;
   }
 
+  const activeIdx = currentIndex ?? todayIndex;
+
   return (
-    <View style={gs.container}>
+    <View
+      style={gs.container}
+      onLayout={(e) => {
+        // Measure available height below the day strip
+        setContentHeight(e.nativeEvent.layout.height - 60);
+      }}
+    >
       <DayStrip
         days={daysList}
-        currentIndex={currentIndex >= 0 ? currentIndex : initialIndex}
+        currentIndex={activeIdx}
         onDayPress={(i) => flatListRef.current?.scrollToIndex({ index: i, animated: true })}
       />
       <FlatList
@@ -253,14 +264,14 @@ export default function PuzzleScreen() {
         pagingEnabled
         data={daysList}
         keyExtractor={(item) => item.date}
-        initialScrollIndex={initialIndex}
+        initialScrollIndex={todayIndex}
         getItemLayout={(_, i) => ({ length: SW, offset: SW * i, index: i })}
         onViewableItemsChanged={onViewable}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => (
-          <View style={{ width: SW }}>
-            <PuzzleGame date={item.date} isCatchUp={item.status === "missed"} />
+          <View style={{ width: SW, height: contentHeight }}>
+            <PuzzleGame date={item.date} isCatchUp={item.status === "missed"} height={contentHeight} />
           </View>
         )}
       />
@@ -271,21 +282,20 @@ export default function PuzzleScreen() {
 const gs = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   center: { flex: 1, backgroundColor: COLORS.bg, justifyContent: "center", alignItems: "center" },
-  page: { flex: 1 },
   errorText: { fontSize: FONT.md, color: COLORS.textSecondary, textAlign: "center", padding: SPACING.lg },
   doneText: { fontSize: FONT.lg, color: COLORS.correct, fontWeight: "600" },
-  catchUpBanner: { backgroundColor: COLORS.present, padding: SPACING.sm, alignItems: "center" },
+  catchUpBanner: { backgroundColor: COLORS.present, paddingVertical: 6, alignItems: "center" },
   catchUpText: { color: "#fff", fontSize: FONT.sm, fontWeight: "600" },
-  banner: { padding: SPACING.lg, alignItems: "center" },
+  banner: { padding: SPACING.md, alignItems: "center" },
   bannerWin: { backgroundColor: COLORS.correct },
   bannerLose: { backgroundColor: COLORS.absent },
   bannerText: { color: "#fff", fontSize: FONT.xl, fontWeight: "700" },
   bannerSub: { color: "rgba(255,255,255,0.7)", fontSize: FONT.sm, marginTop: SPACING.xs },
-  grid: { alignItems: "center", paddingVertical: SPACING.md, gap: 6, flex: 1, justifyContent: "center" },
+  grid: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6 },
   gridRow: { flexDirection: "row", gap: 6 },
   hiddenInput: { position: "absolute", opacity: 0, height: 0 },
   fab: {
-    position: "absolute", bottom: SPACING.xl, right: SPACING.lg,
+    position: "absolute", bottom: SPACING.lg, right: SPACING.lg,
     width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.accent,
     justifyContent: "center", alignItems: "center",
     shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8,
