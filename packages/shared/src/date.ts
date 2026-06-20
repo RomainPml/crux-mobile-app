@@ -29,3 +29,23 @@ export function todayDate(
   });
   return formatter.format(now);
 }
+
+/** Returns array of YYYY-MM-DD strings from month start to yesterday. */
+export function missedDaysThisMonth(
+  now: Date = new Date(),
+  tz: string = DEFAULT_TZ,
+): string[] {
+  const today = todayDate(now, tz);
+  const month = currentMonth(now, tz);
+  const [year, mon] = month.split("-").map(Number);
+  const days: string[] = [];
+  for (let d = 1; d <= 31; d++) {
+    const dayStr = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    if (dayStr >= today) break;
+    // Validate it's a real date
+    const parsed = new Date(dayStr);
+    if (parsed.getMonth() + 1 !== mon) break;
+    days.push(dayStr);
+  }
+  return days;
+}

@@ -6,6 +6,8 @@ export type AnonAuthResponse = z.infer<typeof S.AnonAuthResponseSchema>;
 
 export type PuzzleConfig = z.infer<typeof S.PuzzleConfigSchema>;
 export type PuzzleTodayResponse = z.infer<typeof S.PuzzleTodayResponseSchema>;
+export type DayStatus = z.infer<typeof S.DayStatusSchema>;
+export type MonthStatusResponse = z.infer<typeof S.MonthStatusResponseSchema>;
 
 export type LetterResult = z.infer<typeof S.LetterResultSchema>;
 export type GuessRequest = z.infer<typeof S.GuessRequestSchema>;

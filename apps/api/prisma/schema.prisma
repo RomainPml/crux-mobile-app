@@ -63,6 +63,7 @@ model DailyResult {
   submittedAt      DateTime @default(now()) @map("submitted_at")
   suspect          Boolean  @default(false)
   correct          Boolean  @default(false)
+  isCatchUp        Boolean  @default(false) @map("is_catch_up")
 
   user   User   @relation(fields: [userId], references: [id])
   puzzle Puzzle @relation(fields: [puzzleId], references: [id])

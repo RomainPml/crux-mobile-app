@@ -23,6 +23,15 @@ export const PuzzleTodayResponseSchema = z.object({
   difficulty: z.number().int().min(1).max(5),
   servedAt: z.string().datetime(),
   config: PuzzleConfigSchema,
+  isCatchUp: z.boolean().optional(),
+});
+
+// ── Month status ──
+export const DayStatusSchema = z.enum(["completed", "missed", "today", "future"]);
+
+export const MonthStatusResponseSchema = z.object({
+  month: z.string(),
+  days: z.record(z.string(), DayStatusSchema),
 });
 
 // ── Guess ──
