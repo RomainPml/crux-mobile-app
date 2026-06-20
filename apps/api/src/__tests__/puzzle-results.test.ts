@@ -114,10 +114,11 @@ describe("POST /results", () => {
   });
 
   it("creates a monthly_score entry for non-suspect results", async () => {
-    // Create a fresh user to avoid conflict with previous tests
+    // Use a unique key per test run to avoid stale data
+    const uniqueKey = `monthly-score-test-${Date.now()}`;
     const authRes = await supertest(app.server)
       .post("/auth/anon")
-      .send({ deviceKey: "monthly-score-test-key-1234" });
+      .send({ deviceKey: uniqueKey });
 
     const freshToken = authRes.body.token;
     const freshUserId = authRes.body.userId;
