@@ -90,15 +90,44 @@ async function apiFetch<T>(path: string, options?: RequestInit, isRetry = false)
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`API ${res.status}: ${body}`);
+    throw new ApiError(res.status, body);
   }
   return res.json();
+}
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(`API ${status}: ${message}`);
+  }
+}
+
+// ── Puzzle cache ──
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { todayDate } from "@crux/shared";
+
+const PUZZLE_CACHE_KEY = "crux_puzzle_cache";
+
+async function getPuzzleTodayCached(): Promise<PuzzleTodayResponse> {
+  try {
+    const response = await apiFetch<PuzzleTodayResponse>("/puzzles/today");
+    await AsyncStorage.setItem(PUZZLE_CACHE_KEY, JSON.stringify(response));
+    return response;
+  } catch (error) {
+    // Fallback to cache if offline
+    const cached = await AsyncStorage.getItem(PUZZLE_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached) as PuzzleTodayResponse;
+      if (parsed.day === todayDate()) return parsed;
+    }
+    throw error;
+  }
 }
 
 // ── API methods ──
 
 export const api = {
-  getPuzzleToday: () => apiFetch<PuzzleTodayResponse>("/puzzles/today"),
+  getPuzzleToday: () => getPuzzleTodayCached(),
 
   submitResult: (data: SubmitResultRequest) =>
     apiFetch<SubmitResultResponse>("/results", {

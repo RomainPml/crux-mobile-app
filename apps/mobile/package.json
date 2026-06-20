@@ -10,16 +10,17 @@
   },
   "dependencies": {
     "@crux/shared": "workspace:*",
+    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@tanstack/react-query": "^5.60.0",
     "expo": "~53.0.0",
-    "expo-router": "~5.1.11",
     "expo-linking": "~7.1.7",
+    "expo-router": "~5.1.11",
     "expo-secure-store": "~14.2.4",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.6",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-screens": "~4.11.1",
-    "@tanstack/react-query": "^5.60.0"
+    "react-native-screens": "~4.11.1"
   },
   "devDependencies": {
     "@types/react": "~19.0.0",
