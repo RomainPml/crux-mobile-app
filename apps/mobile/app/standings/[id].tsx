@@ -36,11 +36,13 @@ export default function StandingsScreen() {
         data={entries}
         keyExtractor={(item) => item.userId}
         contentContainerStyle={s.list}
+        onRefresh={() => standings.refetch()}
+        refreshing={standings.isFetching}
         renderItem={({ item, index }) => {
           const isUser = userEntry?.userId === item.userId;
           const medal = MEDALS[item.rank] ?? "";
           return (
-            <View style={[s.row, isUser && s.rowHighlight, index % 2 === 0 && s.rowAlt]}>
+            <View style={[s.row, index % 2 === 0 && s.rowAlt, isUser && s.rowHighlight]}>
               <Text style={s.rowRank}>{medal || `#${item.rank}`}</Text>
               <Text style={s.rowName} numberOfLines={1}>{item.pseudo || "Anonyme"}</Text>
               <Text style={s.rowScore}>{item.totalScore}</Text>
