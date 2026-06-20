@@ -1,5 +1,5 @@
 import type { PuzzleConfig, LetterResult } from "@crux/shared";
-import { ANSWER_POOL, WORDS } from "./words.js";
+import { ANSWER_POOL, VALID_GUESSES } from "./words.js";
 
 // Seeded PRNG (mulberry32)
 function mulberry32(seed: number) {
@@ -64,7 +64,7 @@ export function evaluateGuess(guess: string, answer: string): LetterResult[] {
 }
 
 export function isValidGuess(guess: string): boolean {
-  return guess.length === 5 && WORDS.includes(guess.toUpperCase());
+  return guess.length === 5 && VALID_GUESSES.has(guess.toUpperCase());
 }
 
 // Score based on number of attempts
