@@ -117,7 +117,11 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
             }, wl * 200 + 400);
           }
         },
-        onError: () => shake(),
+        onError: () => {
+          shake();
+          // Clear input after shake so user can retype
+          setTimeout(() => setCurrentInput(""), 300);
+        },
       },
     );
   }, [currentInput, wl, data, gameOver, submitGuess, guesses.length]);
@@ -133,12 +137,12 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
   }
 
   return (
-    <Pressable style={{ height }} onPress={() => inputRef.current?.focus()}>
-      {/* Catch-up banner */}
+    <View style={{ height }}>
+      {/* Catch-up indicator — inline with day strip, not a separate banner */}
       {isCatchUp && !gameOver && (
         <View style={gs.catchUpBanner}>
           <Text style={gs.catchUpText}>
-            Rattrapage du {parseInt(date.slice(8), 10)}/{parseInt(date.slice(5, 7), 10)} — 50% des points
+            Rattrapage {parseInt(date.slice(8), 10)}/{parseInt(date.slice(5, 7), 10)} — x0.5
           </Text>
         </View>
       )}
@@ -160,8 +164,8 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
         </Animated.View>
       )}
 
-      {/* Grid */}
-      <View style={gs.grid}>
+      {/* Grid — tappable to open keyboard */}
+      <Pressable style={gs.grid} onPress={() => inputRef.current?.focus()}>
         {Array.from({ length: maxAttempts }).map((_, row) => {
           const guess = guesses[row];
           const isCurrentRow = row === guesses.length && !gameOver;
@@ -188,7 +192,7 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
             </Animated.View>
           );
         })}
-      </View>
+      </Pressable>
 
       {/* Hidden input */}
       {!gameOver && (
@@ -207,13 +211,17 @@ function PuzzleGame({ date, isCatchUp, height }: { date: string; isCatchUp: bool
         />
       )}
 
-      {/* FAB */}
+      {/* FAB — submit without dismissing keyboard */}
       {!gameOver && currentInput.length === wl && (
-        <Pressable style={gs.fab} onPress={handleSubmit}>
+        <Pressable
+          style={gs.fab}
+          onPress={() => { handleSubmit(); inputRef.current?.focus(); }}
+          hitSlop={12}
+        >
           <Text style={gs.fabText}>{submitGuess.isPending ? "..." : "\u2713"}</Text>
         </Pressable>
       )}
-    </Pressable>
+    </View>
   );
 }
 
@@ -284,8 +292,8 @@ const gs = StyleSheet.create({
   center: { flex: 1, backgroundColor: COLORS.bg, justifyContent: "center", alignItems: "center" },
   errorText: { fontSize: FONT.md, color: COLORS.textSecondary, textAlign: "center", padding: SPACING.lg },
   doneText: { fontSize: FONT.lg, color: COLORS.correct, fontWeight: "600" },
-  catchUpBanner: { backgroundColor: COLORS.present, paddingVertical: 6, alignItems: "center" },
-  catchUpText: { color: "#fff", fontSize: FONT.sm, fontWeight: "600" },
+  catchUpBanner: { backgroundColor: COLORS.present, paddingVertical: 4, alignItems: "center" },
+  catchUpText: { color: "#fff", fontSize: FONT.xs, fontWeight: "600" },
   banner: { padding: SPACING.md, alignItems: "center" },
   bannerWin: { backgroundColor: COLORS.correct },
   bannerLose: { backgroundColor: COLORS.absent },
