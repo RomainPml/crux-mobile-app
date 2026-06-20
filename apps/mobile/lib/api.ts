@@ -17,10 +17,8 @@ import type {
 
 import { Platform } from "react-native";
 
-// Android emulator uses 10.0.2.2 to reach the host machine
-const DEFAULT_API_URL = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
-
-const API_URL: string = DEFAULT_API_URL;
+// Physical device uses LAN IP, emulator uses 10.0.2.2
+const API_URL = "http://192.168.1.59:3000";
 
 const DEVICE_KEY_STORE = "crux_device_key";
 const TOKEN_STORE = "crux_token";
