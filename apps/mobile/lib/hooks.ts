@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
-import type { SubmitResultRequest, CreateLeagueRequest, JoinLeagueRequest } from "@crux/shared";
+import type { SubmitResultRequest, CreateLeagueRequest, JoinLeagueRequest, UpdateProfileRequest } from "@crux/shared";
 
 export function usePuzzleToday() {
   return useQuery({
@@ -64,5 +64,16 @@ export function useJoinLeague() {
   return useMutation({
     mutationFn: (data: JoinLeagueRequest) => api.joinLeague(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leagues"] }),
+  });
+}
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateProfileRequest) => api.updateProfile(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["standings"] });
+    },
   });
 }

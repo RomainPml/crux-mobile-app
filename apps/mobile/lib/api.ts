@@ -11,6 +11,8 @@ import type {
   StandingsResponse,
   ProfileResponse,
   MyLeaguesResponse,
+  UpdateProfileRequest,
+  UpdateProfileResponse,
 } from "@crux/shared";
 
 import { Platform } from "react-native";
@@ -123,6 +125,12 @@ export const api = {
     apiFetch<StandingsResponse>("/leagues/global/standings"),
 
   getProfile: () => apiFetch<ProfileResponse>("/me/profile"),
+
+  updateProfile: (data: UpdateProfileRequest) =>
+    apiFetch<UpdateProfileResponse>("/me/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   getMyLeagues: () => apiFetch<MyLeaguesResponse>("/me/leagues"),
 

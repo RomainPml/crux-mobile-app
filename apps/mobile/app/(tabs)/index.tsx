@@ -32,7 +32,8 @@ export default function PuzzleScreen() {
     submit.mutate(
       {
         puzzleId: data.puzzleId,
-        cleanDeductions: 3, // stub: fixed value
+        cleanDeductions: 3, // stub: will be computed from real puzzle interaction
+        solution: [], // stub: will be populated from grid state
       },
       { onSuccess: () => setSubmitted(true) },
     );

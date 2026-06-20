@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { UpdateProfileRequestSchema } from "@crux/shared";
 import { prisma } from "./db.js";
 import { authenticate } from "./auth.js";
 
@@ -43,5 +44,28 @@ export async function profileRoutes(app: FastifyInstance) {
         membersCount: h.membersCount,
       })),
     };
+  });
+
+  app.patch("/me/profile", { preHandler: [authenticate] }, async (request, reply) => {
+    const userId = request.user.sub;
+    const body = UpdateProfileRequestSchema.parse(request.body);
+
+    // Check case-insensitive uniqueness
+    const existing = await prisma.user.findFirst({
+      where: {
+        pseudo: { equals: body.pseudo, mode: "insensitive" },
+        id: { not: userId },
+      },
+    });
+    if (existing) {
+      return reply.code(409).send({ error: "Ce pseudo est deja pris" });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { pseudo: body.pseudo },
+    });
+
+    return { userId: user.id, pseudo: user.pseudo! };
   });
 }
