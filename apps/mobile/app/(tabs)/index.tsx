@@ -1,13 +1,7 @@
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from "react-native";
-import { useState, useCallback } from "react";
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Alert } from "react-native";
+import { useState, useRef } from "react";
 import { usePuzzleToday, useSubmitGuess } from "../../lib/hooks";
 import type { LetterResult, GuessResponse } from "@crux/shared";
-
-const KEYBOARD_ROWS = [
-  ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
-  ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "M"],
-  ["ENT", "W", "X", "C", "V", "B", "N", "DEL"],
-];
 
 const COLORS: Record<LetterResult, string> = {
   correct: "#538d4e",
@@ -27,61 +21,38 @@ export default function PuzzleScreen() {
   const [currentInput, setCurrentInput] = useState("");
   const [gameOver, setGameOver] = useState(false);
   const [finalResult, setFinalResult] = useState<GuessResponse | null>(null);
-  const [letterStates, setLetterStates] = useState<Record<string, LetterResult>>({});
+  const inputRef = useRef<TextInput>(null);
 
   const wordLength = puzzle.data?.config?.wordLength ?? 5;
   const maxAttempts = puzzle.data?.config?.maxAttempts ?? 6;
 
-  const handleKey = useCallback((key: string) => {
-    if (gameOver || submitGuess.isPending) return;
+  const handleSubmit = () => {
+    const guess = currentInput.toUpperCase().trim();
+    if (guess.length !== wordLength || !puzzle.data || gameOver || submitGuess.isPending) return;
 
-    if (key === "DEL") {
-      setCurrentInput((p) => p.slice(0, -1));
-    } else if (key === "ENT") {
-      if (currentInput.length !== wordLength) return;
-      if (!puzzle.data) return;
-
-      submitGuess.mutate(
-        { puzzleId: puzzle.data.puzzleId, guess: currentInput },
-        {
-          onSuccess: (data) => {
-            const newRow: GuessRow = { word: currentInput, result: data.result };
-            setGuesses((prev) => [...prev, newRow]);
-            setCurrentInput("");
-
-            // Update keyboard letter states
-            setLetterStates((prev) => {
-              const next = { ...prev };
-              for (let i = 0; i < currentInput.length; i++) {
-                const letter = currentInput[i];
-                const r = data.result[i];
-                if (r === "correct") next[letter] = "correct";
-                else if (r === "present" && next[letter] !== "correct") next[letter] = "present";
-                else if (r === "absent" && !next[letter]) next[letter] = "absent";
-              }
-              return next;
-            });
-
-            if (data.solved || data.attemptsUsed >= data.maxAttempts) {
-              setGameOver(true);
-              setFinalResult(data);
-            }
-          },
-          onError: (e) => {
-            const msg = e.message.includes("400") ? "Mot invalide" : "Erreur reseau";
-            Alert.alert("Erreur", msg);
-          },
+    submitGuess.mutate(
+      { puzzleId: puzzle.data.puzzleId, guess },
+      {
+        onSuccess: (data) => {
+          setGuesses((prev) => [...prev, { word: guess, result: data.result }]);
+          setCurrentInput("");
+          if (data.solved || data.attemptsUsed >= data.maxAttempts) {
+            setGameOver(true);
+            setFinalResult(data);
+          }
         },
-      );
-    } else if (currentInput.length < wordLength) {
-      setCurrentInput((p) => p + key);
-    }
-  }, [currentInput, wordLength, gameOver, submitGuess, puzzle.data]);
+        onError: (e) => {
+          const msg = e.message.includes("400") ? "Mot non reconnu" : "Erreur reseau";
+          Alert.alert("", msg);
+        },
+      },
+    );
+  };
 
   if (puzzle.isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1a1a1a" />
+        <ActivityIndicator size="large" color="#fff" />
       </View>
     );
   }
@@ -99,14 +70,14 @@ export default function PuzzleScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <Pressable style={styles.container} onPress={() => inputRef.current?.focus()}>
       {/* Result banner */}
       {gameOver && finalResult && (
         <View style={[styles.banner, finalResult.solved ? styles.bannerWin : styles.bannerLose]}>
           <Text style={styles.bannerText}>
             {finalResult.solved ? `Bravo ! ${finalResult.score} pts` : "Perdu..."}
           </Text>
-          {finalResult.timeMs && (
+          {finalResult.timeMs != null && (
             <Text style={styles.bannerSub}>
               {Math.round(finalResult.timeMs / 1000)}s — {finalResult.attemptsUsed}/{finalResult.maxAttempts} essais
             </Text>
@@ -119,7 +90,7 @@ export default function PuzzleScreen() {
         {Array.from({ length: maxAttempts }).map((_, row) => {
           const guess = guesses[row];
           const isCurrentRow = row === guesses.length && !gameOver;
-          const letters = guess?.word ?? (isCurrentRow ? currentInput : "");
+          const letters = guess?.word ?? (isCurrentRow ? currentInput.toUpperCase() : "");
 
           return (
             <View key={row} style={styles.gridRow}>
@@ -131,7 +102,7 @@ export default function PuzzleScreen() {
 
                 return (
                   <View key={col} style={[styles.cell, { backgroundColor: bg, borderColor }]}>
-                    <Text style={[styles.cellText, { color: result || letter ? "#fff" : "#888" }]}>
+                    <Text style={[styles.cellText, { color: result || letter ? "#fff" : "#555" }]}>
                       {letter}
                     </Text>
                   </View>
@@ -142,42 +113,48 @@ export default function PuzzleScreen() {
         })}
       </View>
 
-      {/* Keyboard */}
-      <View style={styles.keyboard}>
-        {KEYBOARD_ROWS.map((row, ri) => (
-          <View key={ri} style={styles.kbRow}>
-            {row.map((key) => {
-              const state = letterStates[key];
-              const isSpecial = key === "ENT" || key === "DEL";
-              const bg = state ? COLORS[state] : "#818384";
+      {/* Native text input (hidden but captures keyboard) */}
+      {!gameOver && (
+        <View style={styles.inputArea}>
+          <TextInput
+            ref={inputRef}
+            style={styles.textInput}
+            value={currentInput}
+            onChangeText={(t) => setCurrentInput(t.replace(/[^a-zA-Z]/g, "").slice(0, wordLength))}
+            onSubmitEditing={handleSubmit}
+            maxLength={wordLength}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoFocus
+            placeholder={`${wordLength} lettres...`}
+            placeholderTextColor="#555"
+            returnKeyType="send"
+            editable={!submitGuess.isPending}
+          />
+          <Pressable
+            style={[styles.sendBtn, currentInput.length < wordLength && styles.sendBtnDisabled]}
+            onPress={handleSubmit}
+            disabled={currentInput.length < wordLength || submitGuess.isPending}
+          >
+            <Text style={styles.sendBtnText}>
+              {submitGuess.isPending ? "..." : "OK"}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
-              return (
-                <Pressable
-                  key={key}
-                  style={[styles.kbKey, { backgroundColor: bg }, isSpecial && styles.kbKeyWide]}
-                  onPress={() => handleKey(key)}
-                >
-                  <Text style={styles.kbKeyText}>
-                    {key === "DEL" ? "\u232B" : key === "ENT" ? "\u21B5" : key}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ))}
-      </View>
-
+      {/* Loading */}
       {submitGuess.isPending && (
         <View style={styles.overlay}>
           <ActivityIndicator color="#fff" />
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#121213", justifyContent: "space-between" },
+  container: { flex: 1, backgroundColor: "#121213" },
   center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#121213", gap: 12 },
   errorText: { fontSize: 16, color: "#888" },
   errorDetail: { fontSize: 12, color: "#555", textAlign: "center", paddingHorizontal: 24 },
@@ -188,29 +165,44 @@ const styles = StyleSheet.create({
   bannerLose: { backgroundColor: "#3a3a3c" },
   bannerText: { color: "#fff", fontSize: 20, fontWeight: "700" },
   bannerSub: { color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 2 },
-  grid: { alignItems: "center", paddingVertical: 16, gap: 6 },
+  grid: { alignItems: "center", paddingVertical: 24, gap: 6, flex: 1, justifyContent: "center" },
   gridRow: { flexDirection: "row", gap: 6 },
   cell: {
-    width: 56,
-    height: 56,
+    width: 58,
+    height: 58,
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 2,
+    borderRadius: 4,
   },
   cellText: { fontSize: 28, fontWeight: "700" },
-  keyboard: { paddingBottom: 16, paddingHorizontal: 4, gap: 6 },
-  kbRow: { flexDirection: "row", justifyContent: "center", gap: 4 },
-  kbKey: {
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    minWidth: 30,
-    borderRadius: 4,
+  inputArea: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 8,
     alignItems: "center",
-    justifyContent: "center",
   },
-  kbKeyWide: { paddingHorizontal: 14 },
-  kbKeyText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  textInput: {
+    flex: 1,
+    backgroundColor: "#2a2a2b",
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "600",
+    letterSpacing: 8,
+    textAlign: "center",
+    paddingVertical: 14,
+    borderRadius: 8,
+    textTransform: "uppercase",
+  },
+  sendBtn: {
+    backgroundColor: "#538d4e",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  sendBtnDisabled: { opacity: 0.3 },
+  sendBtnText: { color: "#fff", fontSize: 18, fontWeight: "700" },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.4)",
