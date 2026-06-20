@@ -49,7 +49,7 @@ describe("POST /events", () => {
       .post("/events")
       .set("Authorization", `Bearer ${token}`)
       .send({ type: "hacker_event" })
-      .expect(200);
+      .expect(400);
 
     expect(res.body.error).toBe("Invalid event type");
   });
@@ -69,7 +69,7 @@ describe("GET /admin/metrics", () => {
     expect(res.body).toHaveProperty("resultSubmissions");
     expect(res.body).toHaveProperty("totalUsers");
     expect(res.body).toHaveProperty("activeUsersToday");
-    expect(res.body).toHaveProperty("retentionD1");
+    expect(res.body).toHaveProperty("dauRate");
     expect(res.body.period).toBe("last_24h");
   });
 });

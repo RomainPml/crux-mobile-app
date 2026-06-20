@@ -3,10 +3,10 @@ import { prisma } from "./db.js";
 import { authenticate } from "./auth.js";
 
 export async function profileRoutes(app: FastifyInstance) {
-  app.get("/me/profile", { preHandler: [authenticate] }, async (request) => {
+  app.get("/me/profile", { preHandler: [authenticate] }, async (request, reply) => {
     const userId = request.user.sub;
 
-    const user = await prisma.user.findUniqueOrThrow({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         userBadges: {
@@ -19,6 +19,10 @@ export async function profileRoutes(app: FastifyInstance) {
         },
       },
     });
+
+    if (!user) {
+      return reply.code(404).send({ error: "User not found" });
+    }
 
     return {
       userId: user.id,

@@ -165,12 +165,12 @@ export async function standingsRoutes(app: FastifyInstance) {
   app.get(
     "/leagues/global/standings",
     { preHandler: [authenticate] },
-    async (request) => {
+    async (request, reply) => {
       const globalLeague = await prisma.league.findUnique({
         where: { code: "GLOBAL" },
       });
       if (!globalLeague) {
-        return { error: "Global league not found" };
+        return reply.code(404).send({ error: "Global league not found" });
       }
 
       const month = currentMonth();

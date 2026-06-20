@@ -20,7 +20,7 @@ export async function trackEvent(
 }
 
 export async function eventRoutes(app: FastifyInstance) {
-  app.post("/events", { preHandler: [authenticate] }, async (request) => {
+  app.post("/events", { preHandler: [authenticate] }, async (request, reply) => {
     const body = request.body as { type?: string; payload?: Record<string, unknown> };
     const allowedTypes: EventType[] = [
       "share_emitted",
@@ -29,7 +29,7 @@ export async function eventRoutes(app: FastifyInstance) {
     ];
 
     if (!body.type || !allowedTypes.includes(body.type as EventType)) {
-      return { error: "Invalid event type" };
+      return reply.code(400).send({ error: "Invalid event type" });
     }
 
     await trackEvent(body.type as EventType, request.user.sub, body.payload);
@@ -62,7 +62,7 @@ export async function eventRoutes(app: FastifyInstance) {
       resultSubmissions: submissions,
       totalUsers,
       activeUsersToday: activeToday.length,
-      retentionD1: totalUsers > 0 ? Math.round((activeToday.length / totalUsers) * 100) : 0,
+      dauRate: totalUsers > 0 ? Math.round((activeToday.length / totalUsers) * 100) : 0,
     };
   });
 }

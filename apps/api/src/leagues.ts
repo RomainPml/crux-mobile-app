@@ -1,5 +1,6 @@
+import { randomInt } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { CreateLeagueRequestSchema, JoinLeagueRequestSchema } from "@crux/shared";
+import { CreateLeagueRequestSchema, JoinLeagueRequestSchema, currentMonth } from "@crux/shared";
 import { prisma } from "./db.js";
 import { authenticate } from "./auth.js";
 import { trackEvent } from "./events.js";
@@ -10,7 +11,7 @@ const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function generateCode(): string {
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+    code += CODE_CHARS[randomInt(CODE_CHARS.length)];
   }
   return code;
 }
@@ -84,22 +85,37 @@ export async function leagueRoutes(app: FastifyInstance) {
       },
     });
 
-    const { currentMonth } = await import("@crux/shared");
     const month = currentMonth();
 
+    // Get user's rank in each league via a single query per league
+    // (targeted rank computation instead of loading full standings)
     const leagues = await Promise.all(
       memberships.map(async (m) => {
-        // Get user's rank in this league
-        const { computeStandings } = await import("./standings.js");
-        const standings = await computeStandings(m.leagueId, month);
-        const userStanding = standings.find((s) => s.userId === userId);
+        const userScore = await prisma.monthlyScore.findUnique({
+          where: { userId_month: { userId, month } },
+        });
+
+        let currentRank: number | null = null;
+        if (userScore) {
+          // Count members with better scores (simpler than full standings)
+          const betterCount = await prisma.$queryRaw<[{ count: bigint }]>`
+            SELECT COUNT(*) as count FROM monthly_score ms
+            JOIN membership mb ON mb.user_id = ms.user_id AND mb.league_id = ${m.leagueId}
+            WHERE ms.month = ${month} AND (
+              ms.total_score > ${userScore.totalScore}
+              OR (ms.total_score = ${userScore.totalScore} AND ms.puzzles_played > ${userScore.puzzlesPlayed})
+              OR (ms.total_score = ${userScore.totalScore} AND ms.puzzles_played = ${userScore.puzzlesPlayed} AND ms.cumulative_time_ms < ${userScore.cumulativeTimeMs})
+            )
+          `;
+          currentRank = Number(betterCount[0].count) + 1;
+        }
 
         return {
           leagueId: m.league.id,
           name: m.league.name,
           code: m.league.code,
           type: m.league.type === "GLOBAL" ? "global" as const : "private" as const,
-          currentRank: userStanding?.rank ?? null,
+          currentRank,
           memberCount: m.league._count.memberships,
         };
       }),
