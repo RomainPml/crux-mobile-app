@@ -1,39 +1,29 @@
 import type { FastifyInstance } from "fastify";
 import { todayDate } from "@crux/shared";
+import type { PuzzleGrid } from "@crux/shared";
 import { prisma } from "./db.js";
 import { authenticate } from "./auth.js";
-
-// ── PuzzleProvider interface (swap in real generator later) ──
-
-export interface PuzzleProvider {
-  getDailyPuzzle(day: string): { difficulty: number };
-}
-
-export const stubProvider: PuzzleProvider = {
-  getDailyPuzzle(_day: string) {
-    return { difficulty: 3 };
-  },
-};
-
-let provider: PuzzleProvider = stubProvider;
-
-export function setPuzzleProvider(p: PuzzleProvider) {
-  provider = p;
-}
-
-// ── Routes ──
+import { generatePuzzle } from "./puzzle-generator.js";
 
 export async function puzzleRoutes(app: FastifyInstance) {
   app.get("/puzzles/today", { preHandler: [authenticate] }, async (request) => {
     const day = todayDate();
-    const info = provider.getDailyPuzzle(day);
 
-    // Upsert puzzle for today
-    const puzzle = await prisma.puzzle.upsert({
-      where: { day: new Date(day) },
-      update: {},
-      create: { day: new Date(day), difficulty: info.difficulty },
-    });
+    // Check if puzzle already exists for today
+    let puzzle = await prisma.puzzle.findUnique({ where: { day: new Date(day) } });
+
+    if (!puzzle) {
+      // Generate new puzzle
+      const { grid, solution } = generatePuzzle(day);
+      puzzle = await prisma.puzzle.create({
+        data: {
+          day: new Date(day),
+          difficulty: 3,
+          gridData: grid as any,
+          solution: solution as any,
+        },
+      });
+    }
 
     const servedAt = new Date();
 
@@ -49,6 +39,7 @@ export async function puzzleRoutes(app: FastifyInstance) {
       day,
       difficulty: puzzle.difficulty,
       servedAt: servedAt.toISOString(),
+      grid: puzzle.gridData as PuzzleGrid,
     };
   });
 }
