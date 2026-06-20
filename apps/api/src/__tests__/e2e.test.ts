@@ -78,7 +78,7 @@ describe("E2E: full user journey", () => {
       .send({ name: "E2E Test League" })
       .expect(200);
 
-    leagueId = res.body.id;
+    leagueId = res.body.leagueId;
     leagueCode = res.body.code;
     expect(leagueCode).toHaveLength(6);
   });

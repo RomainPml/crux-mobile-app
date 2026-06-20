@@ -44,7 +44,7 @@ export async function leagueRoutes(app: FastifyInstance) {
       data: { leagueId: league.id, userId, role: "ADMIN" },
     });
 
-    return { id: league.id, name: league.name, code: league.code };
+    return { leagueId: league.id, name: league.name, code: league.code };
   });
 
   app.post("/leagues/join", { preHandler: [authenticate] }, async (request, reply) => {

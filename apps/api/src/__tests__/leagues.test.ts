@@ -36,7 +36,7 @@ describe("POST /leagues", () => {
       .send({ name: "Ma Ligue Test" })
       .expect(200);
 
-    expect(res.body).toHaveProperty("id");
+    expect(res.body).toHaveProperty("leagueId");
     expect(res.body.name).toBe("Ma Ligue Test");
     expect(res.body.code).toHaveLength(6);
     // No ambiguous chars
@@ -51,7 +51,7 @@ describe("POST /leagues", () => {
       .expect(200);
 
     const membership = await prisma.membership.findUnique({
-      where: { leagueId_userId: { leagueId: res.body.id, userId: userIdA } },
+      where: { leagueId_userId: { leagueId: res.body.leagueId, userId: userIdA } },
     });
 
     expect(membership).not.toBeNull();
@@ -76,7 +76,7 @@ describe("POST /leagues/join", () => {
       .send({ code })
       .expect(200);
 
-    expect(joinRes.body.leagueId).toBe(createRes.body.id);
+    expect(joinRes.body.leagueId).toBe(createRes.body.leagueId);
     expect(joinRes.body.name).toBe("Join Test League");
   });
 

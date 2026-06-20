@@ -21,8 +21,7 @@ export const PuzzleTodayResponseSchema = z.object({
 // ── Result ──
 export const SubmitResultRequestSchema = z.object({
   puzzleId: z.string(),
-  servedAt: z.string().datetime(),
-  cleanDeductions: z.number().int().min(0),
+  cleanDeductions: z.number().int().min(0).max(10),
 });
 
 export const SubmitResultResponseSchema = z.object({
@@ -40,7 +39,7 @@ export const CreateLeagueRequestSchema = z.object({
 });
 
 export const CreateLeagueResponseSchema = z.object({
-  id: z.string(),
+  leagueId: z.string(),
   name: z.string(),
   code: z.string(),
 });

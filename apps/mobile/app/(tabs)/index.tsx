@@ -32,7 +32,6 @@ export default function PuzzleScreen() {
     submit.mutate(
       {
         puzzleId: data.puzzleId,
-        servedAt: data.servedAt,
         cleanDeductions: 3, // stub: fixed value
       },
       { onSuccess: () => setSubmitted(true) },
