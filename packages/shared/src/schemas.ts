@@ -10,44 +10,42 @@ export const AnonAuthResponseSchema = z.object({
   userId: z.string(),
 });
 
-// ── Puzzle Grid ──
-export const PuzzleCategorySchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  items: z.array(z.string()).length(4),
-});
-
-export const ClueTypeSchema = z.enum([
-  "direct_positive",
-  "direct_negative",
-  "either_or",
-]);
-
-export const PuzzleClueSchema = z.object({
-  id: z.number(),
-  text: z.string(),
-  type: ClueTypeSchema,
-});
-
-export const PuzzleGridSchema = z.object({
-  categories: z.array(PuzzleCategorySchema).length(4),
-  clues: z.array(PuzzleClueSchema),
-});
-
 // ── Puzzle ──
+export const PuzzleConfigSchema = z.object({
+  category: z.string(),
+  wordLength: z.number().int(),
+  maxAttempts: z.number().int(),
+});
+
 export const PuzzleTodayResponseSchema = z.object({
   puzzleId: z.string(),
   day: z.string(),
   difficulty: z.number().int().min(1).max(5),
   servedAt: z.string().datetime(),
-  grid: PuzzleGridSchema,
+  config: PuzzleConfigSchema,
+});
+
+// ── Guess ──
+export const LetterResultSchema = z.enum(["correct", "present", "absent"]);
+
+export const GuessRequestSchema = z.object({
+  guess: z.string(),
+});
+
+export const GuessResponseSchema = z.object({
+  result: z.array(LetterResultSchema),
+  attemptsUsed: z.number().int(),
+  maxAttempts: z.number().int(),
+  solved: z.boolean(),
+  score: z.number().int().optional(),
+  timeMs: z.number().int().optional(),
 });
 
 // ── Result ──
 export const SubmitResultRequestSchema = z.object({
   puzzleId: z.string(),
   cleanDeductions: z.number().int().min(0).max(20),
-  solution: z.array(z.record(z.string())).length(4),
+  solution: z.array(z.record(z.string())).optional(),
 });
 
 export const SubmitResultResponseSchema = z.object({

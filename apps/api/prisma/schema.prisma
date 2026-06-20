@@ -43,6 +43,7 @@ model PuzzleServe {
   userId   String   @map("user_id")
   puzzleId String   @map("puzzle_id")
   servedAt DateTime @map("served_at")
+  guesses  Json?
 
   user   User   @relation(fields: [userId], references: [id])
   puzzle Puzzle @relation(fields: [puzzleId], references: [id])

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
-import type { SubmitResultRequest, CreateLeagueRequest, JoinLeagueRequest, UpdateProfileRequest } from "@crux/shared";
+import type { CreateLeagueRequest, JoinLeagueRequest, UpdateProfileRequest } from "@crux/shared";
 
 export function usePuzzleToday() {
   return useQuery({
@@ -10,15 +10,10 @@ export function usePuzzleToday() {
   });
 }
 
-export function useSubmitResult() {
-  const qc = useQueryClient();
+export function useSubmitGuess() {
   return useMutation({
-    mutationFn: (data: SubmitResultRequest) => api.submitResult(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["profile"] });
-      qc.invalidateQueries({ queryKey: ["standings"] });
-      qc.invalidateQueries({ queryKey: ["leagues"] });
-    },
+    mutationFn: ({ puzzleId, guess }: { puzzleId: string; guess: string }) =>
+      api.submitGuess(puzzleId, guess),
   });
 }
 

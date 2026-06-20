@@ -2,8 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import type {
   AnonAuthResponse,
   PuzzleTodayResponse,
-  SubmitResultRequest,
-  SubmitResultResponse,
+  GuessResponse,
   CreateLeagueRequest,
   CreateLeagueResponse,
   JoinLeagueRequest,
@@ -140,10 +139,10 @@ async function getPuzzleTodayCached(): Promise<PuzzleTodayResponse> {
 export const api = {
   getPuzzleToday: () => getPuzzleTodayCached(),
 
-  submitResult: (data: SubmitResultRequest) =>
-    apiFetch<SubmitResultResponse>("/results", {
+  submitGuess: (puzzleId: string, guess: string) =>
+    apiFetch<GuessResponse>(`/puzzles/${puzzleId}/guess`, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ guess }),
     }),
 
   createLeague: (data: CreateLeagueRequest) =>

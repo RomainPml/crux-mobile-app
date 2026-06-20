@@ -4,11 +4,12 @@ import * as S from "./schemas";
 export type AnonAuthRequest = z.infer<typeof S.AnonAuthRequestSchema>;
 export type AnonAuthResponse = z.infer<typeof S.AnonAuthResponseSchema>;
 
-export type PuzzleCategory = z.infer<typeof S.PuzzleCategorySchema>;
-export type PuzzleClue = z.infer<typeof S.PuzzleClueSchema>;
-export type PuzzleGrid = z.infer<typeof S.PuzzleGridSchema>;
-export type ClueType = z.infer<typeof S.ClueTypeSchema>;
+export type PuzzleConfig = z.infer<typeof S.PuzzleConfigSchema>;
 export type PuzzleTodayResponse = z.infer<typeof S.PuzzleTodayResponseSchema>;
+
+export type LetterResult = z.infer<typeof S.LetterResultSchema>;
+export type GuessRequest = z.infer<typeof S.GuessRequestSchema>;
+export type GuessResponse = z.infer<typeof S.GuessResponseSchema>;
 
 export type SubmitResultRequest = z.infer<typeof S.SubmitResultRequestSchema>;
 export type SubmitResultResponse = z.infer<typeof S.SubmitResultResponseSchema>;
