@@ -1,8 +1,6 @@
 # Crux
 
-A daily brain game where players solve Einstein-style logic puzzles and compete with friends in leagues.
-
-Each day, a new 4x4 logic grid is generated. Players deduce the solution from a set of clues, racing against the clock. Scores feed into monthly league standings with deterministic tiebreaking and badge rewards.
+A Wordle-like daily word game in French with competitive rankings. Guess the word of the day, then compare your score with friends in leagues.
 
 ## Architecture
 
@@ -15,7 +13,7 @@ Monorepo managed with pnpm (hoisted):
 
 ## Features
 
-- **Daily puzzles** — Procedurally generated Einstein riddles with constraint-propagation solver
+- **Daily word puzzle** — A new word to guess every day, Wordle-style
 - **Anonymous-first auth** — Device key to JWT, optional username
 - **Leagues** — Create, join via invite code, and compete on monthly standings
 - **Scoring** — Monthly leaderboards with tiebreak on score, puzzles played, cumulative time, and join date
